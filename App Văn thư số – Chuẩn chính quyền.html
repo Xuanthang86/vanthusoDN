@@ -1,0 +1,409 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>App Văn thư số – Chuẩn chính quyền</title>
+<style>
+:root{--bg:#f3f5f9;--cd:#fff;--tx:#1b2433;--mu:#5b6678;--bd:#d6dce6;--pr:#1e3a8a;--ok:#15803d;--er:#b91c1c;--wa:#b45309;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1520;--cd:#18212f;--tx:#e6ebf3;--mu:#9aa6b8;--bd:#2b3648;--pr:#3b5bdb;--ok:#4ade80;--er:#f87171;--wa:#fbbf24}}
+:root[data-theme="dark"]{--bg:#0f1520;--cd:#18212f;--tx:#e6ebf3;--mu:#9aa6b8;--bd:#2b3648;--pr:#3b5bdb;--ok:#4ade80;--er:#f87171;--wa:#fbbf24}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
+header{background:var(--pr);color:#fff;padding:14px 18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:20px}header small{display:block;opacity:.85;font-style:italic}
+.seg{display:flex;background:rgba(255,255,255,.15);border-radius:10px;padding:3px}.seg button{background:none;border:0;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}.seg button.on{background:#fff;color:var(--pr)}body[data-mode="dang"]{--pr:#a61b1b}#paper .hd{line-height:1.2}
+nav{display:flex;gap:4px;overflow-x:auto;background:var(--cd);border-bottom:1px solid var(--bd);padding:0 12px}nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mu);padding:12px 14px;font-weight:600;cursor:pointer;white-space:nowrap}nav button.on{color:var(--pr);border-color:var(--pr)}
+main{padding:16px;max-width:none}.tab{display:none}.tab.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:16px}@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:16px}
+label{display:block;font-weight:600;margin:10px 0 4px;color:var(--mu);font-size:13px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}textarea{resize:vertical;min-height:70px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{background:var(--cd);border:1px solid var(--bd);color:var(--tx);padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}.btn.p{background:var(--pr);color:#fff;border-color:var(--pr)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.wrap{overflow-x:auto;background:#cfd6e2;padding:14px;border-radius:12px}
+#paper{background:#fff;color:#000;width:100%;min-width:560px;max-width:794px;margin:auto;padding:40px 44px 40px 60px;font:15px/1.5 "Times New Roman",Times,serif;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+#paper .hd{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;text-align:center;font-size:13px}#paper p{margin:3px 0;text-align:justify}
+#paper .ln{border-top:1px solid #000;width:40%;margin:2px auto}
+.it{padding:8px 10px;border-left:4px solid;border-radius:6px;background:var(--bg);margin:6px 0}.it.er{border-color:var(--er)}.it.wa{border-color:var(--wa)}.it.ok{border-color:var(--ok)}
+.mu{color:var(--mu)}#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:10px;z-index:99;display:none;max-width:90%;box-shadow:0 4px 14px rgba(0,0,0,.35)}.tag{font-size:12px;background:var(--bg);border:1px solid var(--bd);padding:2px 8px;border-radius:99px}
+@media print{body *{visibility:hidden}#paper,#paper *{visibility:visible}#paper{position:absolute;left:0;top:0;box-shadow:none}}
+</style><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script></head><body>
+<header><div><h1>App Văn thư số</h1><small>Chuẩn chính quyền, đúng văn bản Đảng – soạn thảo và rà soát thể thức</small></div>
+<div class="seg"><button id="m-nn">Khối Nhà nước – NĐ 30/2020</button><button id="m-dang">Khối Đảng – HD 05-HD/VPTW</button></div></header>
+<nav id="nav"><button data-t="soan" class="on">1. Soạn thảo</button><button data-t="ra">2. Rà soát</button><button data-t="tra">3. Tra cứu</button><button data-t="ls">4. Lịch sử</button><button data-t="cf">5. Cấu hình đơn vị</button></nav>
+<datalist id="dl-names"></datalist><div id="toast"></div><main>
+<section class="tab on" id="soan"><div class="grid"><div class="card">
+<b>Thông tin văn bản</b> <span class="tag" id="mtag"></span>
+<label>Mẫu soạn sẵn</label><div class="row"><select id="tpl"></select><button class="btn" id="usetpl">Dùng mẫu</button></div>
+<div class="row"><div><label>Loại văn bản</label><select id="type" data-k="type"></select></div><div><label>Số (để trống nếu chưa cấp)</label><input data-k="so" inputmode="numeric"></div></div>
+<label>Ngày ban hành</label><input type="date" data-k="date">
+<label>Trích yếu nội dung (Công văn: nhập sau “V/v”)</label><input data-k="ty">
+<div id="f-tq"><label>Thẩm quyền ban hành (QĐ, NQ khối Nhà nước; mỗi dòng một dòng in đậm)</label><textarea data-k="tq" style="min-height:60px"></textarea></div><label>Căn cứ ban hành (mỗi dòng một căn cứ)</label><textarea data-k="cc"></textarea>
+<div id="f-kg"><label>Kính gửi / Kính trình</label><input data-k="kg"></div><div id="f-dv"><label>Phòng soạn thảo (viết tắt, VD: TTTK) – tự điền vào “Lưu: VT, …” và ký hiệu Công văn</label><input data-k="dv"></div>
+<label>Nội dung văn bản</label><textarea data-k="nd" style="min-height:220px"></textarea>
+<div id="f-nn"><label>Nơi nhận (mỗi dòng một nơi)</label><textarea data-k="nn"></textarea></div>
+<div id="f-sg"><label>Chọn người ký từ danh bạ lãnh đạo</label><select id="lead"></select><label>Quyền hạn người ký (VD: KT. GIÁM ĐỐC)</label><input data-k="quyen"><div class="row"><div><label>Chức vụ</label><input data-k="cv"></div><div><label>Họ và tên</label><input data-k="ten" list="dl-names"></div></div></div><div id="f-pt"><label>Người trình (họ tên)</label><input data-k="nt" list="dl-names"><label>Lãnh đạo phòng (họ tên)</label><input data-k="ldp" list="dl-names"><label>Tên phòng trình (tự điền vào câu “Vậy phòng … kính trình …”)</label><input data-k="dvn"><label><input type="checkbox" data-k="phOn" style="width:auto"> Có ý kiến của phòng liên quan</label><div id="ph-w"><textarea data-k="ph" placeholder="Mỗi dòng một phòng, VD: Tổng hợp"></textarea></div><label>Giám đốc Trung tâm (họ tên)</label><input data-k="gd" list="dl-names"><label><input type="checkbox" data-k="pgdOn" style="width:auto"> Có Phó Giám đốc cho ý kiến</label><div id="pgd-w"><input data-k="pgd" list="dl-names" placeholder="Họ tên Phó Giám đốc"></div></div><div id="f-tk"><label>Thư ký (Biên bản)</label><input data-k="tk"></div>
+</div><div><div class="bar"><button class="btn p" id="save">Lưu vào lịch sử</button><button class="btn" id="word">Xuất Word (.docx)</button><button class="btn" id="print">In / Lưu PDF</button><button class="btn" id="copy">Sao chép</button><button class="btn" id="torv">Gửi sang Rà soát</button></div><div class="wrap"><div id="paper"></div></div><p class="mu" id="msg"></p></div></div></section>
+
+<section class="tab" id="ra"><div class="card"><div class="bar"><button class="btn" id="pull">Lấy từ bản soạn</button><button class="btn p" id="run">Rà soát thể thức</button></div>
+<label>Dán hoặc nhập nội dung cần rà soát (căn cứ + nội dung)</label><textarea id="rs" style="min-height:200px"></textarea><div id="res" style="margin-top:12px"></div></div></section>
+
+<section class="tab" id="tra"><div class="card"><input id="q" placeholder="Tìm: ký hiệu, cỡ chữ, lề, chữ ký số, nơi nhận…"><div id="kb" style="margin-top:12px"></div></div></section>
+<section class="tab" id="ls"><div class="card"><div id="hs"></div></div></section>
+
+<section class="tab" id="cf"><div class="card" style="max-width:640px"><b>Cấu hình đơn vị</b><p class="mu">Dùng chung cho mọi bản soạn. Lưu trong trình duyệt của bạn.</p>
+<label>Địa danh</label><input data-c="place" placeholder="Đà Nẵng"><label>Phòng soạn thảo mặc định (viết tắt)</label><input data-c="dv" placeholder="TTTK">
+<b style="display:block;margin-top:14px">Khối Nhà nước</b><label>Cơ quan chủ quản (in hoa)</label><input data-c="nP" placeholder="SỞ KHOA HỌC VÀ CÔNG NGHỆ THÀNH PHỐ ĐÀ NẴNG (tự tách dòng ở “THÀNH PHỐ…”)"><label>Cơ quan ban hành (in hoa)</label><input data-c="nO" placeholder="TRUNG TÂM ĐỔI MỚI SÁNG TẠO"><label>Viết tắt cơ quan</label><input data-c="nA" placeholder="TTĐMST"><label>Tên cơ quan viết thường (dùng trong câu, VD “… kính thông báo”)</label><input data-c="nOn" placeholder="Trung tâm Đổi mới sáng tạo Đà Nẵng"><label>Viết tắt trong ký hiệu Nghị quyết</label><input data-c="nqA" placeholder="HĐND"><label>Cơ quan ban hành Nghị quyết (in hoa)</label><input data-c="nqO" placeholder="HỘI ĐỒNG NHÂN DÂN THÀNH PHỐ ĐÀ NẴNG"><label>Tên đầy đủ phòng soạn thảo mặc định (dùng trong Phiếu trình)</label><input data-c="dvn">
+<b style="display:block;margin-top:14px">Khối Đảng</b><label>Cấp ủy cấp trên (in hoa)</label><input data-c="dP" placeholder="THÀNH UỶ ĐÀ NẴNG"><label>Cơ quan ban hành (in hoa)</label><input data-c="dO" placeholder="ĐẢNG UỶ SỞ KHOA HỌC VÀ CÔNG NGHỆ"><label>Viết tắt cơ quan</label><input data-c="dA" placeholder="ĐU">
+<b style="display:block;margin-top:14px">Danh bạ lãnh đạo (tự điền người ký)</b><p class="mu">Mỗi dòng: Chức vụ | Họ và tên | Quyền hạn ký (nếu có, VD KT. GIÁM ĐỐC). Dùng để chọn nhanh người ký và điền tên Giám đốc, Phó Giám đốc trong Phiếu trình.</p><textarea data-c="leaders" style="min-height:90px"></textarea><b style="display:block;margin-top:14px">Chia sẻ cấu hình giữa các máy, các đơn vị</b><div class="bar"><button class="btn" id="cfx">Xuất cấu hình (JSON)</button><button class="btn" id="cfi">Nhập cấu hình</button></div><textarea id="cfj" placeholder="Cấu hình hiện ở đây; dán cấu hình của đơn vị khác rồi bấm Nhập cấu hình"></textarea><div class="bar" style="margin-top:14px"><button class="btn p" id="svcf">Lưu cấu hình</button><button class="btn" id="th">Đổi giao diện sáng/tối</button></div></div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const ls={g(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+/* [mã, tên loại, chữ viết tắt trong ký hiệu, kiểu trình bày: qd | tl | bb | gm | cv] */
+const T={nn:[['NQ','Nghị quyết','NQ','qd'],['QĐ','Quyết định','QĐ','qd'],['QC','Quy chế','QC','tl'],['QyĐ','Quy định','QĐ','tl'],['TB','Thông báo','TB','tl'],['KH','Kế hoạch','KH','tl'],['ĐA','Đề án','ĐA','tl'],['BC','Báo cáo','BC','tl'],['TTr','Tờ trình','TTr','tl'],['PT','Phiếu trình','PT','pt'],['BB','Biên bản','BB','bb'],['GM','Giấy mời','GM','gm'],['CV','Công văn','','cv']],
+dang:[['NQ','Nghị quyết','NQ','qd'],['QĐ','Quyết định','QĐ','qd'],['QyĐ','Quy định','QĐ','tl'],['QC','Quy chế','QC','tl'],['CT','Chỉ thị','CT','tl'],['KL','Kết luận','KL','tl'],['TT','Thông tri','TT','tl'],['HD','Hướng dẫn','HD','tl'],['CTr','Chương trình','CTr','tl'],['KH','Kế hoạch','KH','tl'],['ĐA','Đề án','ĐA','tl'],['BC','Báo cáo','BC','tl'],['TB','Thông báo','TB','tl'],['TTr','Tờ trình','TTr','tl'],['BB','Biên bản','BB','bb'],['GM','Giấy mời','GM','gm'],['CV','Công văn','CV','cv']]};
+const iso=()=>new Date().toISOString().slice(0,10);
+const CD={place:'Đà Nẵng',nP:'SỞ KHOA HỌC VÀ CÔNG NGHỆ THÀNH PHỐ ĐÀ NẴNG',nO:'TRUNG TÂM ĐỔI MỚI SÁNG TẠO',nOn:'Trung tâm Đổi mới sáng tạo Đà Nẵng',nA:'TTĐMST',nqA:'HĐND',nqO:'HỘI ĐỒNG NHÂN DÂN THÀNH PHỐ ĐÀ NẴNG',dv:'TTTK',dvn:'',dP:'THÀNH UỶ ĐÀ NẴNG',dO:'ĐẢNG UỶ',dA:'ĐU',leaders:'GIÁM ĐỐC | | \nPHÓ GIÁM ĐỐC | | KT. GIÁM ĐỐC'};
+let mode='nn',C={...CD,...ls.g('vts-cf2',{})},S={type:'KH',so:'',date:iso(),ty:'',cc:'',kg:'',nd:'',nn:'',quyen:'',cv:'',ten:'',tq:'',dv:C.dv,tk:'',nt:'',ldp:'',ph:'',phOn:false,pgdOn:false,pgd:'',gd:'',dvn:C.dvn};
+const TY=k=>T[mode].find(t=>t[0]==k)||T[mode][0],name=k=>TY(k)[1],kind=()=>TY(S.type)[3];
+/* Nội dung mẫu theo từng thể loại (dùng chung hai khối, chỗ trống ghi “…”) */
+const BD={
+KH:`1. Căn cứ pháp lý
+- …
+- …
+2. Mục đích, yêu cầu
+2.1. Mục đích: …
+2.2. Yêu cầu: …
+3. Nội dung thực hiện
+3.1. Thời gian, địa điểm: …
+3.2. Thành phần: …
+3.3. Nội dung: …
+4. Tổ chức thực hiện
+4.1. … chủ trì, phối hợp với … triển khai thực hiện.
+4.2. Kinh phí: …
+Trên đây là Kế hoạch …, đề nghị các đơn vị nghiêm túc triển khai thực hiện./.`,
+BC:`Thực hiện …, … báo cáo kết quả … như sau:
+I. TÌNH HÌNH CHUNG
+II. KẾT QUẢ ĐẠT ĐƯỢC
+1. …
+2. …
+III. TỒN TẠI, HẠN CHẾ VÀ NGUYÊN NHÂN
+1. Tồn tại, hạn chế: …
+2. Nguyên nhân: …
+IV. PHƯƠNG HƯỚNG, NHIỆM VỤ THỜI GIAN TỚI
+1. …
+V. KIẾN NGHỊ, ĐỀ XUẤT
+Trên đây là báo cáo …, kính báo cáo …./.`,
+TB:`Ngày … tháng … năm …, … đã tổ chức …
+Sau khi nghe …, … thông báo như sau:
+1. …
+2. …
+3. …
+Đề nghị … biết, thực hiện./.`,
+TTr:`Căn cứ …, … kính trình … xem xét, quyết định … như sau:
+I. SỰ CẦN THIẾT
+1. Cơ sở pháp lý, thực tiễn: …
+II. NỘI DUNG ĐỀ XUẤT
+1. …
+2. …
+III. KIẾN NGHỊ
+… kính trình … xem xét, quyết định./.`,
+CT:`Thời gian qua, … đã đạt được kết quả …; tuy nhiên vẫn còn …
+Để …, … chỉ thị:
+1. …
+2. …
+3. Tổ chức thực hiện
+…
+Yêu cầu … nghiêm túc triển khai thực hiện./.`,
+HD:`Thực hiện …, để thống nhất …, … hướng dẫn như sau:
+I. QUY ĐỊNH CHUNG
+1. Phạm vi, đối tượng áp dụng: …
+2. Nguyên tắc: …
+II. NỘI DUNG HƯỚNG DẪN
+1. …
+2. …
+III. TỔ CHỨC THỰC HIỆN
+…
+Trên đây là hướng dẫn …, trong quá trình thực hiện nếu có vướng mắc đề nghị phản ánh về … để xem xét, giải quyết./.`,
+CTr:`I. MỤC ĐÍCH, YÊU CẦU
+1. …
+II. NỘI DUNG, THỜI GIAN, PHÂN CÔNG
+1. Nội dung: …
+2. Thời gian: …
+3. Đơn vị chủ trì, phối hợp: …
+III. TỔ CHỨC THỰC HIỆN
+…`,
+QC:`(Ban hành kèm theo Quyết định số …/QĐ-{A} ngày … tháng … năm … của {N})
+Chương I
+QUY ĐỊNH CHUNG
+Điều 1. Phạm vi điều chỉnh
+1. …
+2. …
+a) …
+b) …
+Điều 2. Đối tượng áp dụng
+…
+Chương II
+NỘI DUNG QUY CHẾ
+Điều 3. …
+…
+Chương III
+ĐIỀU KHOẢN THI HÀNH
+Điều … Hiệu lực thi hành
+…`,
+DA:`I. SỰ CẦN THIẾT VÀ CĂN CỨ XÂY DỰNG
+II. MỤC TIÊU
+1. Mục tiêu chung: …
+2. Mục tiêu cụ thể: …
+III. NHIỆM VỤ, GIẢI PHÁP
+1. …
+IV. KINH PHÍ VÀ NGUỒN LỰC
+V. TỔ CHỨC THỰC HIỆN
+…`,
+BB:`Thời gian bắt đầu: … giờ …, ngày … tháng … năm …
+Địa điểm: …
+Thành phần tham dự: …
+Chủ trì (chủ tọa): …
+Thư ký (người ghi biên bản): …
+Nội dung (theo diễn biến cuộc họp/hội nghị/hội thảo):
+1. …
+2. …
+Cuộc họp (hội nghị, hội thảo) kết thúc vào … giờ … cùng ngày./.
+Biên bản này được lập thành … bản, có giá trị như nhau./.`,
+GM:`… trân trọng kính mời: …
+Tới dự: …
+Chủ trì: …
+Thời gian: … giờ …, ngày … tháng … năm …
+Địa điểm: …
+Đề nghị các đại biểu có mặt đúng giờ./.`,
+CV:`Thực hiện …, … đề nghị … thực hiện các nội dung sau:
+1. …
+2. …
+… đề nghị … phối hợp thực hiện./.`,
+KL:`Ngày … tháng … năm …, … đã họp để …
+Sau khi nghe …, … kết luận như sau:
+1. …
+2. …
+3. Giao … tham mưu, tổ chức thực hiện.`,
+TT:`Thực hiện …, … thông tri đến các cấp uỷ, tổ chức đảng nội dung sau:
+1. …
+2. …
+Đề nghị các cấp uỷ, tổ chức đảng nghiêm túc triển khai thực hiện./.`,
+NQN:`Điều 1. …
+Điều 2. …
+Điều 3. Giao … tổ chức thực hiện Nghị quyết này.
+Nghị quyết này có hiệu lực kể từ ngày …/.`,
+QDN:`Điều 1. …
+Điều 2. …
+Điều 3. Các phòng thuộc Trung tâm và các tổ chức, cá nhân có liên quan chịu trách nhiệm thi hành Quyết định này.
+Quyết định này có hiệu lực kể từ ngày ký./.`,
+NQD:`Ngày … tháng … năm …, … đã họp … để …
+I. ĐÁNH GIÁ TÌNH HÌNH
+1. …
+II. QUAN ĐIỂM, MỤC TIÊU
+1. …
+III. NHIỆM VỤ, GIẢI PHÁP
+1. …
+IV. TỔ CHỨC THỰC HIỆN
+…`,
+QDD:`… quyết định:
+Điều 1. …
+Điều 2. …
+Điều 3. Các đồng chí … và các tổ chức đảng có liên quan chịu trách nhiệm thi hành Quyết định này.
+Quyết định này có hiệu lực kể từ ngày ký./.`};
+BD.PT=`Người trình: …
+Nội dung trình:
+…
+Vậy phòng … kính trình Lãnh đạo Trung tâm xem xét, phê duyệt.
+Các tài liệu đính kèm:
+- …`;
+BD.PA=BD.DA;BD.ĐA=BD.DA;BD.QyĐ=BD.QC;
+const TYH={nn:{NQ:'Về việc …',QĐ:'Về việc …',TB:'Về việc …',TTr:'Về việc …',PT:'Về việc …',QyĐ:'Về …',QC:'Làm việc của …',KH:'Tổ chức …',BC:'Kết quả thực hiện …',ĐA:'… ',BB:'Họp …',GM:'Họp …',CV:'…'}};
+function mkTpl(k0){const v=k0,k=k0=='TB2'?'TB':k0,nn=mode=='nn',kd=TY(k)[3],sg=nn?['','GIÁM ĐỐC']:['T/M ĐẢNG UỶ','BÍ THƯ'],dv=S.dv||C.dv;
+let nd=(BD[k]||BD.KH).replace('{A}',C.nA).replace('{N}',C.nOn),cc='',tq='',q=sg[0],c=sg[1],kg='',ty=(TYH.nn[k]||'…');
+if(nn&&k=='QĐ'){nd=BD.QDN;tq='GIÁM ĐỐC TRUNG TÂM ĐỔI MỚI SÁNG TẠO';cc='Căn cứ …;\nCăn cứ …;\nTheo đề nghị của ….'}
+if(v=='TB2'){cc='Căn cứ …;\nCăn cứ …;';nd='…\n…\n'+C.nOn+' kính thông báo đến … được biết./.'}
+if(nn&&k=='NQ'){nd=BD.NQN;tq=C.nqO+'\nKHÓA …, NHIỆM KỲ …, KỲ HỌP THỨ …';cc='Căn cứ …;\nXét Tờ trình số … ngày … của …;\nXét Báo cáo thẩm tra của ….';q='TM. HỘI ĐỒNG NHÂN DÂN';c='CHỦ TỊCH'}
+if(!nn&&k=='NQ'){nd=BD.NQD;cc='Căn cứ Điều lệ Đảng;\nCăn cứ Quy chế làm việc của …;'}
+if(!nn&&k=='QĐ'){nd=BD.QDD;cc='Căn cứ Điều lệ Đảng;\nCăn cứ Quy chế làm việc của …;\nXét đề nghị của ….'}
+if(['CV','TTr'].includes(k))kg=nn?'…':'Ban Thường vụ …';
+if(k=='PT'){kg='Lãnh đạo Trung tâm';q='';c=''}
+if(k=='QC'||k=='QyĐ')ty='… tại '+C.nOn;
+if(kd=='bb'){q='';c='CHỦ TỌA'}
+if(!nn)ty=ty.charAt(0).toLowerCase()+ty.slice(1);
+const lu=nn?`- Lưu: VT, ${dv}.`:'- Lưu Văn phòng.',nr=kd=='pt'?'':kd=='bb'?lu:(nn&&k=='QĐ'?'- Như Điều 3;\n'+lu:(nn?'- Như trên;\n':'- Như trên,\n')+lu);
+const r={type:k,ty,cc,kg,nd,nn:nr,quyen:q,cv:c,tq};if(k=='PT'){const ld=leaders();r.dvn=S.dvn||C.dvn;r.ph='';r.phOn=false;r.pgdOn=false;r.gd=(ld.find(a=>/^GIÁM ĐỐC/i.test(a[0]))||[])[1]||'';r.pgd=(ld.find(a=>/^PHÓ GIÁM ĐỐC/i.test(a[0]))||[])[1]||''}return r}
+function leaders(){return (C.leaders||'').split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a[0])}
+function fillLead(){const ld=leaders();$('#lead').innerHTML='<option value="">— chọn —</option>'+ld.map((a,i)=>`<option value="${i}">${esc(a[0]+(a[1]?' – '+a[1]:''))}</option>`).join('');$('#dl-names').innerHTML=ld.filter(a=>a[1]).map(a=>`<option value="${esc(a[1])}">`).join('')}
+
+function fillSel(){const s=$('#type');s.innerHTML=T[mode].map(t=>`<option value="${t[0]}">${t[1]} (${t[2]||'không ghi tên loại'})</option>`).join('');s.value=S.type;$('#tpl').innerHTML=T[mode].map(t=>`<option value="${t[0]}">${t[1]}</option>`+(mode=='nn'&&t[0]=='TB'?'<option value="TB2">Thông báo (có căn cứ, “kính thông báo”)</option>':'')).join('');$('#tpl').value=S.type}
+function vis(){const kd=kind(),nn=mode=='nn',sh=(id,v)=>$(id).style.display=v?'':'none';sh('#f-tq',nn&&kd=='qd');sh('#f-kg',['cv','tl','pt'].includes(kd));sh('#f-dv',nn);sh('#f-tk',kd=='bb');sh('#f-pt',kd=='pt');sh('#ph-w',S.phOn);sh('#pgd-w',S.pgdOn);sh('#f-nn',kd!='pt');sh('#f-sg',kd!='pt')}
+function setMode(m){mode=m;document.body.dataset.mode=m;$('#m-nn').className=m=='nn'?'on':'';$('#m-dang').className=m=='dang'?'on':'';$('#mtag').textContent=m=='nn'?'Khối Nhà nước – NĐ 30/2020':'Khối Đảng – HD 05-HD/VPTW';if(!T[m].some(t=>t[0]==S.type))S.type='KH';fillSel();if(!S.nn&&kind()!='pt')S.nn=mkTpl(S.type).nn;vis();sync();render()}
+function sync(){$$('[data-k]').forEach(e=>{if(e.type=='checkbox')e.checked=!!S[e.dataset.k];else e.value=S[e.dataset.k]||''})}
+const NB='\u00a0',noSo=()=>mode=='nn'&&['BB','PT','QC','QyĐ'].includes(S.type);
+function splitOrg(s){s=(s||'').trim();if(!s)return[];const m=s.match(/^(.*?\S)\s+((?:THÀNH PHỐ|TỈNH|HUYỆN|QUẬN|THỊ XÃ|XÃ(?! HỘI)|PHƯỜNG|ĐẶC KHU)\s.+)$/);return m?[m[1],m[2]]:[s]}
+function soLine(){const t=TY(S.type);if(mode=='nn'){const suf=t[3]=='cv'?C.nA+(S.dv?'-'+S.dv:''):(S.type=='NQ'?'NQ-'+(C.nqA||'HĐND'):t[2]+'-'+C.nA);return 'Số:'+(S.so?' '+S.so:NB.repeat(14))+'/'+suf}return 'Số '+(S.so||NB.repeat(6))+'-'+t[2]+'/'+C.dA}
+const dt=()=>{const d=S.date?S.date.split('-'):['','',''];return `${C.place}, ngày ${d[2]} tháng ${d[1]} năm ${d[0]}`};
+const plainT=()=>mode=='nn'&&['QC','QyĐ'].includes(S.type);
+function build(){const nn=mode=='nn',t=TY(S.type),kd=t[3],ty=S.ty.replace(/^V\/v\s*/i,''),plain=plainT(),nq=nn&&S.type=='NQ',L=[],R=[],B=[];
+if(!plain){if(!nq)splitOrg(nn?C.nP:C.dP).forEach(x=>L.push({x}));
+const og=splitOrg(nq?C.nqO:(nn?C.nO:C.dO));og.forEach((x,i)=>L.push({x,b:1,rule:nn&&i==og.length-1?'s':''}));if(!nn)L.push({x:'*'});
+if(kd!='pt'&&!noSo())L.push({x:soLine(),gap:1,so:1});
+if(kd=='cv'&&ty)L.push({x:'V/v '+ty,i:1,sz:12,gap:1});
+if(nn)R.push({x:'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',b:1,sz:12},{x:'Độc lập - Tự do - Hạnh phúc',b:1,sz:13,rule:'g'});else R.push({x:'ĐẢNG CỘNG SẢN VIỆT NAM',b:1,sz:15,rule:'g'});
+R.push({x:dt(),i:1,gap:1})}
+const P=(rs,o)=>B.push({rs:typeof rs=='string'?[{x:rs}]:rs,...o});
+if(kd!='cv'){let tyr=ty;if(nn&&kd=='qd'&&ty&&!/^Về\s/i.test(ty))tyr='Về việc '+ty;if(nq)tyr=tyr.toUpperCase();
+P([{x:t[1].toUpperCase(),b:1}],{al:'c',sz:nn?14:16,gap:1});P([{x:tyr,b:1}],{al:'c'});if(!plain)B.push(nn?{rule:'t'}:{rs:[{x:'- - - - -'}],al:'c'})}
+if(kd=='cv'||kd=='pt'||(kd=='tl'&&S.kg.trim()))P(((!nn&&S.type=='TTr')?'Kính trình':'Kính gửi')+': '+(S.kg||'…'),{al:'c',gap:1});
+const cl=S.cc.split('\n').filter(x=>x.trim());
+if(nn&&kd=='qd'){S.tq.split('\n').filter(x=>x.trim()).forEach(l=>P([{x:l.trim(),b:1}],{al:'c'}));cl.forEach(l=>P([{x:l.trim(),i:1}],{ind:1}));P([{x:S.type=='NQ'?'QUYẾT NGHỊ:':'QUYẾT ĐỊNH:',b:1}],{al:'c'})}
+else cl.forEach(l=>P([{x:l.trim(),i:!nn}],{ind:1}));
+S.nd.split('\n').filter(x=>x.trim()).forEach(l=>{l=l.trim();let m;
+if(kd=='pt'&&/^Vậy phòng/.test(l))l=`Vậy phòng ${S.dvn||C.dvn||'…'} kính trình Lãnh đạo Trung tâm xem xét, phê duyệt.`;
+if(kd=='pt'&&/^Người trình:/.test(l)&&S.nt)l='Người trình: '+S.nt;
+if(/^\((Ban hành )?[Kk]èm theo/.test(l))P([{x:l,i:1}],{al:'c'});
+else if(/^Chương\s/.test(l)||(l==l.toUpperCase()&&/[A-ZÀ-Ỹ]{3}/.test(l)&&!/^[IVX]+\./.test(l)))P([{x:l,b:1}],{al:'c'});
+else if(/^[IVX]+\.\s/.test(l))P([{x:l,b:1}],{ind:1});
+else if(m=l.match(/^(Điều \d+\.)(.*)$/)){if(plain&&!/[.;:,]$/.test(m[2].trim())&&l.length<110)P([{x:l,b:1}],{ind:1});else P([{x:m[1],b:1},{x:m[2]}],{ind:1})}
+else if(/^\d+\.\s+[^\d…]{6,}$/.test(l)&&!/[.;:,…]$/.test(l)&&l.length<90)P([{x:l,b:1}],{ind:1});
+else if(['gm','bb','pt'].includes(kd)&&(m=l.match(/^((?:Tới dự|Chủ trì|Thời gian|Địa điểm|Thành phần|Thư ký|Nội dung|Người trình|Các tài liệu)[^:]{0,40}:)(.*)$/)))P([{x:m[1],b:1},{x:m[2]}],{ind:1});
+else P(l,{ind:1})});
+const nr=S.nn.split('\n').map(x=>x.trim()).filter(Boolean);let F;
+if(plain)F={k:'none'};
+else if(kd=='pt'){const phs=S.phOn?S.ph.split('\n').map(x=>x.trim()).filter(Boolean):[];
+const r1=[{h:'NGƯỜI TRÌNH',n:S.nt},{h:'LÃNH ĐẠO PHÒNG',n:S.ldp},...phs.map(p=>({h:'Ý KIẾN PHÒNG '+p.toUpperCase(),n:''}))].reverse();
+const r2=[...(S.pgdOn?[{h:'PHÓ GIÁM ĐỐC',n:S.pgd}]:[]),{h:'GIÁM ĐỐC TRUNG TÂM',n:S.gd}].reverse();
+const mc=Math.max(r1.length,r2.length),pad=a=>[...Array(mc-a.length).fill({h:'',n:''}),...a];F={k:'pt',mc,rows:[pad(r1),pad(r2)]}}
+else F={k:kd=='bb'?'bb':'std',nr,q:S.quyen,c:S.cv,ten:S.ten,tk:S.tk};
+return{L,R,B,F,plain}}
+const rh=rs=>rs.map(r=>{let x=esc(r.x);if(r.b)x=`<b>${x}</b>`;if(r.i)x=`<i>${x}</i>`;return x}).join('');
+function render(){const m=build(),h=a=>a.map(o=>{const st=`${o.sz?`font-size:${o.sz}px;`:''}${o.gap?'margin-top:5px;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic':''}`;
+if(o.rule=='g')return `<div style="${st}"><span style="display:inline-block;border-bottom:1px solid #000;padding-bottom:4px">${esc(o.x)}</span></div>`;
+if(o.rule=='s')return `<div style="${st}"><span style="display:inline-block">${esc(o.x)}<span style="display:block;border-top:1px solid #000;width:50%;margin:4px auto 0"></span></span></div>`;
+return `<div style="${st}">${esc(o.x)}</div>`}).join('');
+const sg=(q,c,ten)=>[q,c].filter(Boolean).map(x=>`<b>${esc(x)}</b>`).join('<br>')+`<div style="height:60px"></div><b>${esc(ten)}</b>`;
+const nrh=a=>`<div style="margin-left:1cm"><b style="font-size:12px"><i>Nơi nhận:</i></b>${a.map(l=>`<div style="font-size:12px">${esc(l)}</div>`).join('')}</div>`;
+let ft='',F=m.F;
+if(F.k=='std')ft=`<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-top:14px"><div>${nrh(F.nr)}</div><div style="text-align:center">${sg(F.q,F.c,F.ten)}</div></div>`;
+else if(F.k=='bb')ft=`<div style="display:grid;grid-template-columns:1fr 1fr;text-align:center;margin-top:14px"><div><b>THƯ KÝ</b><div style="height:60px"></div><b>${esc(F.tk)}</b></div><div>${sg(F.q,F.c,F.ten)}</div></div><div style="margin-top:8px">${nrh(F.nr)}</div>`;
+else if(F.k=='pt')ft='<table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-top:14px;text-align:center">'+F.rows.map((r,i)=>`<tr>${r.map(c=>`<td style="padding:4px;vertical-align:top">${c.h?`<b>${esc(c.h)}</b>`:''}</td>`).join('')}</tr><tr style="height:56px">${r.map(()=>'<td></td>').join('')}</tr><tr>${r.map(c=>`<td style="padding:4px;vertical-align:top">${c.n?`<b>${esc(c.n)}</b>`:''}</td>`).join('')}</tr>${i==0?'<tr style="height:14px"><td></td></tr>':''}`).join('')+'</table>';
+const bl=m.B.map(b=>b.rule?'<div class="ln" style="width:90px"></div>':`<p style="${b.al=='c'?'text-align:center;':''}${b.ind?'text-indent:1cm;':''}${b.sz?`font-size:${b.sz}px;`:''}${b.gap?'margin-top:8px':''}">${rh(b.rs)}</p>`).join('');
+$('#paper').innerHTML=`${m.plain?'':`<div class="hd"><div>${h(m.L)}</div><div>${h(m.R)}</div></div>`}${bl}${ft}`}
+/* Xuất .docx (tự dựng bằng JSZip) */
+const X=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const rn=(r,sz)=>`<w:r><w:rPr>${r.b?'<w:b/>':''}${r.i?'<w:i/>':''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${X(r.x)}</w:t></w:r>`;
+function dp(rs,o={}){o={al:'c',sz:28,...o};const jc={c:'center',j:'both',l:'left'}[o.al];const bd=o.rule?`<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="${o.rule}" w:color="000000"/></w:pBdr>`:'';
+return `<w:p><w:pPr>${bd}<w:spacing w:before="${o.bf||0}" w:after="${o.af??60}" w:line="${o.ln||288}" w:lineRule="auto"/><w:ind w:left="${o.l||0}" w:right="${o.r||0}"${o.ind?' w:firstLine="567"':''}/><w:jc w:val="${jc}"/><w:rPr><w:sz w:val="${o.sz}"/></w:rPr></w:pPr>${rs.map(r=>rn(r,o.sz)).join('')}</w:p>`}
+const cell=(w,ps,span)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${span?`<w:gridSpan w:val="${span}"/>`:''}</w:tcPr>${ps||'<w:p/>'}</w:tc>`;
+const tbl=(ws,rows)=>`<w:tbl><w:tblPr><w:tblW w:w="${ws.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="nil"/>`).join('')}</w:tblBorders></w:tblPr><w:tblGrid>${ws.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.map(r=>`<w:tr>${r}</w:tr>`).join('')}</w:tbl>`;
+const _cv=document.createElement('canvas').getContext('2d');
+function mw(x,pt,b,i){_cv.font=`${i?'italic ':''}${b?'bold ':''}${pt}pt "Times New Roman",Times,serif`;return Math.round(_cv.measureText(x).width*0.75*20)+24}
+function hdocx(a,w){return a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b,o.i),rs=[{x:o.x,b:o.b,i:o.i}],base={sz:sz*2,af:0,ln:240,bf:o.gap?60:0};
+if(o.rule=='g'){const ind=Math.max(0,Math.round((w-tw)/2));return dp(rs,{...base,rule:4,l:ind,r:ind,af:60})}
+let s=dp(rs,base);if(o.rule=='s'){const rl=Math.round(Math.min(tw,w)/2),ind=Math.round((w-rl)/2);s+=dp([],{rule:2,l:ind,r:ind,sz:4,af:80,ln:120})}return s}).join('')}
+function docXml(){const m=build();let o='';
+if(!m.plain)o+=tbl([4000,5355],[cell(4000,hdocx(m.L,3784))+cell(5355,hdocx(m.R,5139))])+'<w:p/>';
+m.B.forEach(b=>{if(b.rule)o+=dp([],{rule:4,l:3900,r:3900,af:60,sz:10});else o+=dp(b.rs,{al:b.al=='c'?'c':'j',ind:b.ind,sz:(b.sz||14)*2,bf:b.gap?80:0,ln:b.al=='c'?276:312,af:80})});
+const F=m.F,sgp=(q,c,ten)=>[q,c].filter(Boolean).map(x=>dp([{x,b:1}],{af:0,ln:240})).join('')+dp([],{af:0,ln:1200})+dp([{x:ten,b:1}],{});
+const nrp=a=>dp([{x:'Nơi nhận:',b:1,i:1}],{al:'l',sz:24,af:0,l:567,ln:240})+a.map(l=>dp([{x:l}],{al:'l',sz:22,l:567,af:0,ln:240})).join('');
+if(F.k!='none')o+='<w:p/>';
+if(F.k=='std')o+=tbl([4900,4455],[cell(4900,nrp(F.nr))+cell(4455,sgp(F.q,F.c,F.ten))]);
+else if(F.k=='bb')o+=tbl([4677,4678],[cell(4677,dp([{x:'THƯ KÝ',b:1}],{af:0})+dp([],{af:0,ln:1200})+dp([{x:F.tk,b:1}],{}))+cell(4678,sgp(F.q,F.c,F.ten))])+'<w:p/>'+nrp(F.nr);
+else if(F.k=='pt'){const w=Math.floor(9355/F.mc),tr=(c,h)=>`<w:tr>${h?`<w:trPr><w:trHeight w:val="${h}" w:hRule="exact"/></w:trPr>`:''}${c}</w:tr>`,rows=[];F.rows.forEach((r,i)=>{rows.push(tr(r.map(c=>cell(w,dp(c.h?[{x:c.h,b:1}]:[],{af:0,ln:240}))).join('')));rows.push(tr(r.map(c=>cell(w,dp([],{af:0}))).join(''),1100));rows.push(tr(r.map(c=>cell(w,dp(c.n?[{x:c.n,b:1}]:[],{af:0}))).join('')));if(i==0)rows.push(tr(r.map(c=>cell(w,dp([],{af:0}))).join(''),240))});o+=`<w:tbl><w:tblPr><w:tblW w:w="${w*F.mc}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${Array(F.mc).fill(`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl>`}
+return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${o}<w:p/><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="850" w:bottom="1134" w:left="1701" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`}
+async function makeDocx(){const z=new JSZip(),W='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+z.file('word/_rels/document.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+z.file('word/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="vi-VN"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`);
+z.file('word/document.xml',docXml());return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
+function check(text){const R=[],add=(l,m)=>R.push([l,m]),nn=mode=='nn',kd=kind(),L=text.split('\n').map(x=>x.trim()).filter(Boolean);
+if(!(nn?C.nO:C.dO).trim())add('er','Chưa cấu hình tên cơ quan ban hành (tab Cấu hình đơn vị).');
+if(!(nn?C.nA:C.dA).trim())add('er','Chưa có tên viết tắt cơ quan để lập ký hiệu văn bản.');
+if(S.so&&noSo())add('wa','Loại văn bản này không có số văn bản (Quy chế, Quy định kèm theo Quyết định; Biên bản; Phiếu trình).');
+else if(/^\d$/.test(S.so))add('wa','Số nhỏ hơn 10 phải ghi thêm số 0 phía trước (01, 02…).');
+if(kd!='cv'&&!S.ty.trim())add('er','Thiếu trích yếu nội dung.');
+if(kd=='cv'&&!S.ty.trim())add('wa','Công văn nên có trích yếu “V/v …” dưới số, ký hiệu.');
+if(S.ty.trim().split(/\s+/).length>30)add('wa','Trích yếu quá dài; cần ngắn gọn, phản ánh đúng nội dung chính.');
+if(/[.;,]$/.test(S.ty.trim()))add('wa','Trích yếu không kết thúc bằng dấu chấm, chấm phẩy hoặc phẩy.');
+if(!nn&&kd!='cv'&&/^[A-ZÀ-Ỹ]/.test(S.ty.trim()))add('wa','Văn bản Đảng: trích yếu dưới tên loại viết thường chữ đầu (VD “về quy hoạch cán bộ…”, “kết quả đại hội…”).');
+if(nn&&kd=='qd'&&!S.tq.trim())add('er','Thiếu thẩm quyền ban hành (chức danh người đứng đầu hoặc tên tập thể/cơ quan) trước phần “QUYẾT ĐỊNH:”/“QUYẾT NGHỊ:”.');
+if(nn&&!S.dv.trim())add('wa','Chưa có chữ viết tắt phòng soạn thảo (VD TTTK) – dùng cho “Lưu: VT, …” và ký hiệu Công văn.');
+if(!S.date)add('er','Chưa có ngày ban hành.');else if(S.date>iso())add('wa','Ngày ban hành ở tương lai so với hôm nay.');
+if(kd=='pt'){if(!S.nt.trim())add('wa','Phiếu trình chưa có họ tên người trình.');if(!S.ldp.trim())add('wa','Phiếu trình chưa có họ tên lãnh đạo phòng.');if(!(S.dvn||'').trim())add('wa','Chưa có tên phòng trình (câu “Vậy phòng … kính trình …”).');if(S.phOn&&!S.ph.trim())add('wa','Đã tích ý kiến phòng liên quan nhưng chưa điền tên phòng.');if(S.pgdOn&&!S.pgd.trim())add('wa','Đã tích Phó Giám đốc nhưng chưa điền họ tên.');if(!S.gd.trim())add('wa','Chưa có họ tên Giám đốc Trung tâm.')}
+else if(!plainT()&&(!S.ten.trim()||!S.cv.trim()))add('er','Thiếu chức vụ hoặc họ tên người ký.');
+if(kd=='bb'&&!S.tk.trim())add('wa','Biên bản cần có chữ ký, họ tên của thư ký.');
+if(!S.quyen.trim()&&kd!='bb'&&kd!='pt'&&!plainT()&&!(nn&&kd=='qd')&&!/^(CHỦ TỊCH|GIÁM ĐỐC)/.test(S.cv.trim()))add('wa','Chưa ghi quyền hạn người ký (TM., KT., TL., TUQ. nếu có).');
+const nr=S.nn.split('\n').map(x=>x.trim()).filter(Boolean);
+if(kd=='pt'||plainT()){}else if(!nr.length)add('er','Thiếu Nơi nhận.');else{if(nn&&S.dv.trim()&&!nr.some(x=>new RegExp('Lưu:\\s*VT,\\s*'+S.dv.trim()).test(x)))add('wa',`Dòng “Lưu: VT, …” nên ghi viết tắt phòng soạn thảo (${S.dv.trim()}).`);
+if(S.type=='CV'&&!nr.some(x=>/Như trên/i.test(x)))add('er','Công văn: Nơi nhận phải có “Như trên”.');if(!nr.some(x=>/Lưu/i.test(x)))add('wa','Nơi nhận nên có dòng “Lưu” (VT và ký hiệu người soạn).');
+const sep=nn?';':',';nr.slice(0,-1).forEach(x=>{if(!x.endsWith(sep))add('wa',`Nơi nhận: dòng “${x}” nên kết thúc bằng dấu “${sep}”.`)});if(!/\.$/.test(nr[nr.length-1]))add('wa','Dòng cuối của Nơi nhận phải kết thúc bằng dấu chấm.');
+if(S.type!='CV'&&S.kg.trim()&&!['pt'].includes(kd)&&!nr.some(x=>/Như trên/i.test(x)))add('wa','Có “Kính gửi/Kính trình” thì dòng đầu Nơi nhận có thêm “Như trên”.');
+if(nn&&kd=='qd'&&!nr.some(x=>/Như Điều/i.test(x)))add('wa','Quyết định (cá biệt) khối Nhà nước: Nơi nhận thường có “- Như Điều …;”.')}
+if(['cv','tl'].includes(kd)&&['CV','TTr'].includes(S.type)&&!S.kg.trim())add(S.type=='CV'?'er':'wa',!nn&&S.type=='TTr'?'Tờ trình khối Đảng cần phần “Kính trình”.':'Cần có “Kính gửi” (nơi nhận giải quyết) ở đầu trang.');
+if(kd=='qd'&&(nn||S.type=='QĐ')&&!/Điều 1\./.test(text))add('er','Quyết định/Nghị quyết cần bố cục theo Điều (Điều 1., Điều 2. …).');
+if(kd=='qd'&&(nn||S.type=='QĐ')&&!/hiệu lực|thi hành/i.test(text))add('wa','Điều cuối thường nêu hiệu lực thi hành và trách nhiệm thi hành.');
+if(kd=='gm')['Chủ trì:','Thời gian:','Địa điểm:'].forEach(x=>{if(!text.includes(x))add('er',`Giấy mời thiếu mục “${x.replace(':','')}”.`)});
+if(kd=='pt'&&!/Nội dung trình/.test(text))add('wa','Phiếu trình cần có mục “Nội dung trình”.');
+if(plainT()&&!/kèm theo/i.test(text))add('wa','Quy chế/Quy định cần có dòng “(Ban hành kèm theo Quyết định số … ngày … của …)”.');
+if(kd=='bb')['Thời gian bắt đầu:','Địa điểm:','Thành phần','Chủ trì','Thư ký','kết thúc'].forEach(x=>{if(!text.includes(x))add('er',`Biên bản thiếu mục “${x}”.`)});
+if(/…|\.{3}/.test(text+S.ty+S.kg+S.tq))add('wa','Còn chỗ giữ chỗ “…” chưa điền.');
+if(/ {2,}/.test(text))add('wa','Có khoảng trắng kép trong nội dung.');
+if(/ [,.;:!?]/.test(text.replace(/\.\/\./g,'')))add('wa','Có dấu câu đứng sau khoảng trắng (VD “ ,”).');
+if(/[,;:]\S/.test(text.replace(/\d[,.]\d/g,'').replace(/https?:\S+/g,'')))add('wa','Thiếu khoảng trắng sau dấu phẩy/chấm phẩy/hai chấm.');
+if(/ngày\s+[1-9]\s+tháng/i.test(text))add('er','Ngày nhỏ hơn 10 phải ghi 0 phía trước (ngày 05 tháng …).');
+if(/tháng\s+[12]\s+năm/i.test(text))add('wa','Tháng 1, 2 phải ghi 01, 02 khi viết ngày ban hành.');
+if(nn&&/uỷ/i.test(text))add('wa','Khối Nhà nước viết “Ủy”, không viết “Uỷ”.');
+if(!nn&&/ủy/i.test(text))add('wa','Văn bản Đảng viết “Uỷ”/“uỷ” theo hướng dẫn của Văn phòng Trung ương.');
+const cl=L.filter(x=>/^Căn cứ/.test(x));cl.forEach((x,i)=>{if(i<cl.length-1&&!/;$/.test(x))add('wa',`Căn cứ “${x.slice(0,45)}…” phải kết thúc bằng dấu chấm phẩy.`)});
+L.filter(x=>/^Theo đề nghị/.test(x)).forEach(x=>{if(nn&&!/\.$/.test(x))add('wa','Dòng “Theo đề nghị của …” khối Nhà nước kết thúc bằng dấu chấm.')});
+L.filter(x=>!/^(Căn cứ|[-•]|Điều|Chương|Thời gian|Địa điểm|Chủ trì|Thư ký|Thành phần|Tới dự|Nội dung)/.test(x)&&!/^[IVX]+\./.test(x)&&x.split(' ').length>14&&!/[.;:,\/]$/.test(x)).slice(0,3).forEach(x=>add('wa',`Đoạn “${x.slice(0,45)}…” không kết thúc bằng dấu câu.`));
+if(text.trim()&&!/[.\/]\s*$/.test(text.trim()))add('wa','Nội dung chưa kết thúc bằng dấu chấm (thường “./.” trước phần chữ ký).');
+add('ok',nn?'Kỹ thuật (NĐ 30/2020): A4, Times New Roman 13–14, lề trên/dưới 20–25 mm, trái 30–35 mm, phải 15–20 mm. Mẫu 1.2/1.3: căn cứ chữ nghiêng; mẫu 1.4 (KH, BC, TB, TTr…): căn cứ chữ thường đứng.':'Kỹ thuật (HD 05-HD/VPTW): Times New Roman; tên loại in hoa đậm 15–16; trích yếu thường đậm 14–15, dưới có 05 dấu gạch nối; chữ ký số xanh PNG nền trong suốt – đối chiếu Phụ lục 2.');
+return R}
+function runCheck(txt){const R=check(txt),e=R.filter(r=>r[0]=='er').length,w=R.filter(r=>r[0]=='wa').length;$('#res').innerHTML=`<p><b>${e} lỗi, ${w} cảnh báo</b> <span class="mu">(rà soát tự động, cần đối chiếu thêm khi ban hành)</span></p>`+R.map(r=>`<div class="it ${r[0]}">${esc(r[1])}</div>`).join('')}
+const nav=t=>{$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));$$('.tab').forEach(s=>s.classList.toggle('on',s.id==t));if(t=='ls')hist();if(t=='tra')kb()}
+$$('nav button').forEach(b=>b.onclick=()=>nav(b.dataset.t));
+$('#m-nn').onclick=()=>setMode('nn');$('#m-dang').onclick=()=>setMode('dang');
+$$('[data-k]').forEach(e=>e.oninput=()=>{S[e.dataset.k]=e.type=='checkbox'?e.checked:e.value;vis();if(e.dataset.k=='type'){if(kind()!='pt'&&!S.nn)S.nn=mkTpl(S.type).nn;sync()}if(e.dataset.k=='dv'){S.nn=S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m,(a,b)=>`${b} ${S.dv}.`);$('[data-k=nn]').value=S.nn}render()});
+$('#usetpl').onclick=()=>{const k=$('#tpl').value;if(!S.dv)S.dv=C.dv;Object.assign(S,mkTpl(k));fillSel();vis();sync();render();msg('Đã áp dụng mẫu '+name(k)+'. Thay các chỗ “…” bằng nội dung thực tế.')};
+let tt;function msg(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',3500)}
+$('#save').onclick=()=>{const h=ls.g('vts-hs',[]);h.unshift({t:Date.now(),mode,S:{...S}});msg(ls.s('vts-hs',h.slice(0,50))?'Đã lưu vào lịch sử.':'Trình duyệt không cho phép lưu trữ.')};
+$('#copy').onclick=async()=>{const t=$('#paper').innerText;try{await navigator.clipboard.writeText(t);msg('Đã sao chép văn bản.')}catch(e){try{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();msg(ok?'Đã sao chép văn bản.':'Không sao chép được – hãy bôi đen văn bản rồi Ctrl+C.')}catch(e2){msg('Không sao chép được – hãy bôi đen văn bản rồi Ctrl+C.')}}};
+$('#print').onclick=()=>{try{window.print()}catch(e){msg('Không in được trong khung này – hãy mở trang ở tab riêng.')}};
+$('#word').onclick=async()=>{try{if(typeof JSZip=='undefined'){msg('Chưa tải được thư viện tạo .docx – kiểm tra kết nối mạng.');return}const blob=await makeDocx(),fn=`${S.type}-${(S.so||'van-ban').replace(/[^\w-]/g,'')}.docx`;let dl=null;try{dl=window.claude&&await claude.use('downloads')}catch(e){}
+if(dl){await dl.save({filename:fn,data:blob});msg('Đã gửi tệp Word.')}else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();msg('Đang tải tệp Word (.docx)…')}}catch(e){msg(e&&e.code=='declined'?'Bạn đã hủy lưu tệp.':'Không xuất được tệp: '+(e.message||e))}};
+$('#pull').onclick=()=>{$('#rs').value=(S.cc?S.cc+'\n':'')+S.nd;msg('Đã lấy nội dung từ bản soạn.')};$('#torv').onclick=()=>{$('#pull').click();nav('ra');runCheck($('#rs').value)};$('#run').onclick=()=>runCheck($('#rs').value);
+const KB=[['Quy ước của đơn vị (TTĐMST)','Ký hiệu: Công văn “Số:      /TTĐMST-TTTK”; Kế hoạch /KH-TTĐMST; Quyết định /QĐ-TTĐMST; Nghị quyết /NQ-HĐND; Thông báo /TB-TTĐMST; Đề án /ĐA-TTĐMST; Báo cáo /BC-TTĐMST; Giấy mời /GM-TTĐMST. Không có số: Quy chế, Quy định (kèm theo Quyết định), Biên bản, Phiếu trình. Công văn bắt buộc có Kính gửi và Nơi nhận “Như trên”. Dòng “Lưu: VT, [phòng]” tự điền từ ô Phòng soạn thảo. Đầu dòng và Nơi nhận lùi 1 cm.'],['Phiếu trình','Khung ký gồm: Người trình; Lãnh đạo phòng; ý kiến các phòng liên quan (một hoặc nhiều); ý kiến Lãnh đạo Trung tâm (Giám đốc, Phó Giám đốc hoặc cả hai). Không có số văn bản.'],['Thể thức Nhà nước','NĐ 30/2020: quốc hiệu và tiêu ngữ; tên cơ quan; số, ký hiệu; địa danh, ngày tháng; tên loại và trích yếu; nội dung; chức vụ, họ tên người ký; dấu; nơi nhận; dấu khẩn, phạm vi lưu hành. Phụ lục III có 10 mẫu: 1.1 Nghị quyết (cá biệt), 1.2/1.3 Quyết định (cá biệt) trực tiếp/gián tiếp, 1.4 văn bản có tên loại, 1.5 Công văn, 1.6 Công điện, 1.7 Giấy mời, 1.8 Giấy giới thiệu, 1.9 Biên bản, 1.10 Giấy nghỉ phép.'],
+['Mẫu 1.4 – văn bản có tên loại','Dùng chung cho chỉ thị, quy chế, quy định, thông cáo, thông báo, hướng dẫn, chương trình, kế hoạch, phương án, đề án, dự án, báo cáo, tờ trình…: tên loại in hoa đậm, trích yếu thường đậm, dưới có đường kẻ ngắn. Phần căn cứ (nếu có) và nội dung đều chữ thường, kiểu đứng.'],
+['Mẫu 1.2/1.3 – Quyết định (cá biệt)','Tên loại “QUYẾT ĐỊNH”, trích yếu “Về việc …”, thẩm quyền ban hành (chức danh người đứng đầu, hoặc tên tập thể/cơ quan nếu thẩm quyền thuộc tập thể), các “Căn cứ …;” chữ nghiêng kết thúc chấm phẩy, “Theo đề nghị của …” kết thúc dấu chấm, rồi “QUYẾT ĐỊNH:” và các Điều. Nơi nhận có “Như Điều …”. Mẫu 1.3 (gián tiếp): Điều 1 ban hành/phê duyệt văn bản kèm theo, văn bản kèm theo ghi “(Kèm theo Quyết định số … ngày … của …)”.'],
+['Mẫu 1.1 – Nghị quyết (cá biệt)','Cấu trúc như Quyết định: thẩm quyền ban hành (VD Hội đồng nhân dân), căn cứ chữ nghiêng, “QUYẾT NGHỊ:” và các Điều.'],
+['Mẫu 1.5 – Công văn','Không ghi tên loại. Số, ký hiệu gồm chữ viết tắt cơ quan và đơn vị soạn thảo hoặc lĩnh vực (VD “Số: 127/UBND-VP”). Trích yếu “V/v …” ngay dưới số, ký hiệu; có “Kính gửi”; nơi nhận dòng đầu thường “Như trên”.'],
+['Mẫu 1.7 – Giấy mời','Tên loại “GIẤY MỜI”, trích yếu nội dung cuộc họp; “Cơ quan … trân trọng kính mời: …”; “Tới dự …”; “Chủ trì:”, “Thời gian:”, “Địa điểm:”.'],
+['Mẫu 1.9 – Biên bản','Tên loại “BIÊN BẢN”, trích yếu là tên cuộc họp/hội nghị/hội thảo; Thời gian bắt đầu, Địa điểm, Thành phần tham dự, Chủ trì (chủ tọa), Thư ký, Nội dung diễn biến, giờ kết thúc; ký hai cột Thư ký – Chủ tọa; Nơi nhận “Lưu: VT, Hồ sơ”.'],
+['Cỡ chữ Nhà nước','Quốc hiệu 12–13 in hoa; tiêu ngữ 13–14 đứng đậm; tên cơ quan 12–13 in hoa; số ký hiệu 13; địa danh, ngày tháng 13–14 nghiêng; tên loại 13–14 in hoa đậm; trích yếu 14 đậm; nội dung 13–14; nơi nhận 11–12.'],
+['Lề trang Nhà nước','A4. Lề trên 20–25 mm, dưới 20–25 mm, trái 30–35 mm, phải 15–20 mm. Phông Times New Roman, Unicode. Số trang đánh từ trang thứ hai.'],
+['Số và ký hiệu Nhà nước','“Số: 12/KH-UBND”. Số từ 01 đầu năm đến hết năm; số nhỏ hơn 10 ghi thêm 0.'],
+['Viết tắt tên loại','NQ, QĐ, CT, QC, QĐ (Quy định), TC (Thông cáo), TB, HD, CTr, KH, PA, ĐA, DA, BC, BB, TTr, HĐ, GM… Công văn không ghi tên loại.'],
+['Ngày tháng','“Đà Nẵng, ngày 05 tháng 01 năm 2026”. Ngày nhỏ hơn 10 và tháng 1, 2 ghi thêm số 0.'],
+['Nơi nhận Nhà nước','“Nơi nhận:” in nghiêng đậm; mỗi dòng gạch đầu dòng kết thúc dấu chấm phẩy, dòng cuối “Lưu: VT, …” kết thúc dấu chấm.'],
+['Văn bản Đảng – phạm vi','HD 05-HD/VPTW (27/5/2026) thực hiện Quy định 399-QĐ/TW (09/01/2026) về thể loại, thẩm quyền ban hành và thể thức văn bản của Đảng; áp dụng từ Trung ương đến chi bộ; thay thế HD 36-HD/VPTW (2018); không áp dụng với tổ chức hoạt động theo Luật Doanh nghiệp.'],
+['Thể thức Đảng','Tiêu đề “ĐẢNG CỘNG SẢN VIỆT NAM”; tên cơ quan ban hành (kèm cơ quan cấp trên trực tiếp); số và ký hiệu; địa danh, ngày tháng; tên loại và trích yếu; nội dung; quyền hạn, chức vụ, họ tên, chữ ký; dấu; nơi nhận; dấu khẩn, mật; chỉ dẫn phạm vi lưu hành, dự thảo; ký hiệu người soạn, số lượng bản phát hành; thông tin liên hệ.'],
+['Số, ký hiệu Đảng','“Số 127-QĐ/TW”: số, gạch nối, viết tắt tên loại, gạch chéo, viết tắt cơ quan; không có dấu hai chấm sau “Số”. Ký hiệu loại: NQ, CT, KL, QC, BC…; trùng chữ cái thì: Quyết định và Quy định đều QĐ, Chương trình CTr, Thông tri TT, Tờ trình TTr.'],
+['Tên loại và trích yếu Đảng','Tên loại một dòng riêng, in hoa đậm cỡ 15–16; trích yếu thường đậm cỡ 14–15 đặt cân đối ngay dưới, bên dưới có 05 dấu gạch nối (-) ngăn cách với nội dung. Công văn không ghi tên loại; trích yếu công văn ghi dưới số, ký hiệu, chữ thường nghiêng cỡ 12.'],
+['Căn cứ ban hành Đảng','Căn cứ (nếu có) trình bày dưới tên loại và trích yếu; ghi đầy đủ tên loại, số, ký hiệu, cơ quan ban hành, ngày tháng năm và trích yếu (luật, pháp lệnh chỉ ghi tên và năm ban hành).'],
+['Cỡ chữ Đảng','Phụ lục 2: tiêu đề “ĐẢNG CỘNG SẢN VIỆT NAM” 15 in hoa; cơ quan cấp trên 14 in hoa đứng; cơ quan ban hành 14 in hoa đậm; số ký hiệu 14 thường; nội dung 14–15; dấu khẩn 14 đậm; chỉ dẫn phạm vi lưu hành 12 in hoa đậm; chỉ dẫn dự thảo 14 nghiêng; ký hiệu người soạn 11.'],
+['Kính gửi / Kính trình / Nơi nhận Đảng','Công văn: “Kính gửi” đặt chính giữa trang đầu; tờ trình: “Kính trình”. Có Kính gửi thì dòng đầu Nơi nhận thêm “Như trên”. Chữ ký thừa lệnh ghi T/L; ký thay mặt ghi T/M (VD T/M ĐẢNG UỶ – BÍ THƯ).'],
+['Chữ ký số văn bản điện tử Đảng','Chữ ký của người có thẩm quyền: màu xanh, PNG nền trong suốt, đặt giữa chức vụ và họ tên. Dấu cơ quan: PNG nền trong suốt.'],
+['Văn bản liên quan','NĐ 30/2020/NĐ-CP (05/3/2020); HD 05-HD/VPTW (27/5/2026); Quy định 399-QĐ/TW (09/01/2026); HD 09-HD/VPTW (03/6/2026) về xử lý văn bản điện tử. Luôn đối chiếu văn bản sửa đổi, bổ sung mới nhất.']];
+function kb(){const q=$('#q').value.toLowerCase();$('#kb').innerHTML=KB.filter(k=>(k[0]+k[1]).toLowerCase().includes(q)).map(k=>`<div class="it ok"><b>${esc(k[0])}</b><br>${esc(k[1])}</div>`).join('')||'<p class="mu">Không có kết quả.</p>'}$('#q').oninput=kb;
+function hist(){const h=ls.g('vts-hs',[]);$('#hs').innerHTML=h.length?h.map((x,i)=>`<div class="it ok" style="display:flex;gap:8px;align-items:center;justify-content:space-between"><div><b>${esc(x.S.ty||'(Chưa có trích yếu)')}</b><br><span class="mu">${x.mode=='nn'?'Nhà nước':'Đảng'} · ${esc(x.S.type)} · ${new Date(x.t).toLocaleString('vi-VN')}</span></div><div><button class="btn" data-o="${i}">Mở</button> <button class="btn" data-d="${i}">Xóa</button></div></div>`).join(''):'<p class="mu">Chưa có bản nào được lưu.</p>';
+$$('[data-o]').forEach(b=>b.onclick=()=>{const x=h[b.dataset.o];S={...S,...x.S};setMode(x.mode);nav('soan')});$$('[data-d]').forEach(b=>b.onclick=()=>{h.splice(b.dataset.d,1);ls.s('vts-hs',h);hist()})}
+$$('[data-c]').forEach(e=>{e.value=C[e.dataset.c]||''});
+$$('[data-c]').forEach(e=>e.oninput=()=>{C[e.dataset.c]=e.value;render()});
+$('#svcf').onclick=()=>{$$('[data-c]').forEach(e=>C[e.dataset.c]=e.value);render();msg(ls.s('vts-cf2',C)?'Đã lưu cấu hình đơn vị.':'Đã áp dụng cấu hình (trình duyệt không cho lưu lâu dài, sẽ mất khi tải lại trang).')};
+$('#th').onclick=()=>{const r=document.documentElement,d=getComputedStyle(document.body).backgroundColor=='rgb(15, 21, 32)';r.dataset.theme=d?'light':'dark';msg(d?'Giao diện sáng':'Giao diện tối')};
+$('#lead').onchange=()=>{const a=leaders()[+$('#lead').value];if(!a)return;S.cv=a[0];S.ten=a[1]||'';S.quyen=a[2]||'';sync();render()};
+$$('[data-c=leaders]').forEach(e=>e.addEventListener('input',fillLead));
+$('#cfx').onclick=()=>{$$('[data-c]').forEach(e=>C[e.dataset.c]=e.value);$('#cfj').value=JSON.stringify(C,null,1);msg('Đã xuất cấu hình – sao chép đoạn JSON bên dưới.')};
+$('#cfi').onclick=()=>{try{const o=JSON.parse($('#cfj').value);C={...CD,...C,...o};$$('[data-c]').forEach(e=>e.value=C[e.dataset.c]||'');fillLead();render();msg('Đã nhập cấu hình (nhớ bấm Lưu cấu hình).')}catch(e){msg('JSON không hợp lệ.')}};
+fillLead();setMode('nn');
+</script></body></html>
