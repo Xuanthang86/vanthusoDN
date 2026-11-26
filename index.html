@@ -406,4 +406,6 @@ $$('[data-c=leaders]').forEach(e=>e.addEventListener('input',fillLead));
 $('#cfx').onclick=()=>{$$('[data-c]').forEach(e=>C[e.dataset.c]=e.value);$('#cfj').value=JSON.stringify(C,null,1);msg('Đã xuất cấu hình – sao chép đoạn JSON bên dưới.')};
 $('#cfi').onclick=()=>{try{const o=JSON.parse($('#cfj').value);C={...CD,...C,...o};$$('[data-c]').forEach(e=>e.value=C[e.dataset.c]||'');fillLead();render();msg('Đã nhập cấu hình (nhớ bấm Lưu cấu hình).')}catch(e){msg('JSON không hợp lệ.')}};
 fillLead();setMode('nn');
-</script></body></html>
+</script>
+<script src="patch.js"></script>
+</body></html>
