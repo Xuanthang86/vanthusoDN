@@ -8,7 +8,10 @@
   const css = document.createElement('style');
   css.textContent = `
   .opt-grid{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:16px}
-  @media(max-width:900px){.opt-grid{grid-template-columns:1fr}}
+  .dg-grid{display:grid;grid-template-columns:1.7fr minmax(290px,380px);gap:16px}
+  @media(max-width:960px){.opt-grid,.dg-grid{grid-template-columns:1fr}}
+  .dg-grid .chips{gap:6px;margin:6px 0 8px}
+  .dg-grid .chip{padding:5px 10px;font-size:12.5px}
   .drop{border:2px dashed var(--bd);border-radius:12px;padding:22px 16px;text-align:center;background:var(--bg);cursor:pointer;transition:.15s border-color,.15s background}
   .drop.ov{border-color:var(--pr);background:rgba(30,58,138,.08)}
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
@@ -139,13 +142,12 @@
     const fmt = effectiveFormat(S.type);
     const paper = q('#paper');
     if (!paper) return;
-    const pxFont = Math.round(fmt.fontSizePt * 1.08); // ~14pt -> 15px
-    paper.style.fontSize = pxFont + 'px';
+    paper.style.fontSize = fmt.fontSizePt + 'pt';
     paper.style.lineHeight = String(fmt.lineHeight);
-    const mmToPx = mm => Math.round(mm * 1.9);
-    paper.style.padding = `${mmToPx(fmt.marginsMm.top)}px ${mmToPx(fmt.marginsMm.right)}px ${mmToPx(fmt.marginsMm.bottom)}px ${mmToPx(fmt.marginsMm.left)}px`;
+    paper.style.padding = `${fmt.marginsMm.top}mm ${fmt.marginsMm.right}mm ${fmt.marginsMm.bottom}mm ${fmt.marginsMm.left}mm`;
     qa('#paper p').forEach(el => {
       if (el.style.textIndent) el.style.textIndent = fmt.indentCm + 'cm';
+      if (el.style.lineHeight) el.style.lineHeight = String(fmt.lineHeight);
     });
   };
 
@@ -866,8 +868,34 @@
     'Muốn đồng bộ dữ liệu giữa nhiều máy'
   ];
 
+  const VS_KEY = 'vts-visits-v1';
+  let visitCount = Number(ls.g(VS_KEY, 0)) || 0;
   let rvState = { stars: 5, hover: 0, tags: new Set(), note: '' };
   let reviews = ls.g(RV_KEY, []);
+
+  async function syncVisits() {
+    const visited = sessionStorage.getItem('vts-visited-v1');
+    if (!visited) {
+      sessionStorage.setItem('vts-visited-v1', '1');
+      visitCount += 1;
+      ls.s(VS_KEY, visitCount);
+    }
+    try {
+      const r = await fetch('/api/visits', {
+        method: visited ? 'GET' : 'POST',
+        headers: { Accept: 'application/json' }
+      });
+      const ct = r.headers.get('content-type') || '';
+      if (r.ok && ct.includes('application/json')) {
+        const d = await r.json();
+        if (d && Number.isFinite(Number(d.visits))) {
+          visitCount = Math.max(visitCount, Number(d.visits));
+          ls.s(VS_KEY, visitCount);
+          if (q('#dg.on')) renderDgTab();
+        }
+      }
+    } catch (_) {}
+  }
 
   async function syncServerReviews() {
     try {
@@ -899,24 +927,24 @@
     const avg = total ? (reviews.reduce((s, r) => s + r.stars, 0) / total).toFixed(1) : '—';
     const counts = [5, 4, 3, 2, 1].map(st => reviews.filter(r => r.stars === st).length);
 
-    el.innerHTML = `<div class="opt-grid">
+    el.innerHTML = `<div class="dg-grid">
       <div class="card">
         <b>Đánh giá trải nghiệm của bạn</b>
-        <p class="mu" style="margin:4px 0 10px">Chỉ cần chọn số sao và bấm vào các gợi ý bên dưới — không cần gõ chữ.</p>
-        <label>1. Mức độ hài lòng</label>
-        <div class="stars" id="dg-stars">
+        <p class="mu" style="margin:4px 0 8px">Chỉ cần chọn số sao và bấm vào các gợi ý bên dưới — không cần gõ chữ.</p>
+        <label style="margin-top:6px">1. Mức độ hài lòng</label>
+        <div class="stars" id="dg-stars" style="margin:4px 0">
           ${[1, 2, 3, 4, 5].map(i => `<button type="button" class="star-btn${i <= (rvState.hover || rvState.stars) ? ' on' : ''}" data-s="${i}" title="${i} sao">★</button>`).join('')}
         </div>
-        <div id="dg-star-lbl" style="font-weight:600;color:var(--pr);margin-bottom:8px">${STAR_LABELS[rvState.stars]}</div>
+        <div id="dg-star-lbl" style="font-weight:600;color:var(--pr);margin-bottom:6px">${STAR_LABELS[rvState.stars]}</div>
 
-        <label>2. Chọn nhanh nhận xét gợi ý (có thể chọn nhiều)</label>
+        <label style="margin-top:6px">2. Chọn nhanh nhận xét gợi ý (có thể chọn nhiều)</label>
         <div class="chips" id="dg-chips">
           ${chips.map(c => `<button type="button" class="chip${rvState.tags.has(c) ? ' on' : ''}" data-c="${at(c)}">${esc(c)}</button>`).join('')}
         </div>
 
-        <label>3. Góp ý thêm (tùy chọn – không bắt buộc)</label>
+        <label style="margin-top:6px">3. Góp ý thêm (tùy chọn – không bắt buộc)</label>
         <input id="dg-note" maxlength="500" value="${at(rvState.note)}" placeholder="Không bắt buộc phải nhập...">
-        <div class="bar" style="margin-top:14px">
+        <div class="bar" style="margin-top:12px">
           <button type="button" class="btn p" id="dg-submit">Gửi đánh giá</button>
           <button type="button" class="btn" id="dg-reset">Làm lại</button>
         </div>
@@ -927,6 +955,7 @@
         <div class="kpi-row">
           <div class="kpi"><span class="mu">Điểm trung bình</span><b>${avg} / 5 ★</b></div>
           <div class="kpi"><span class="mu">Tổng lượt đánh giá</span><b>${total} lượt</b></div>
+          <div class="kpi"><span class="mu">Lượt truy cập</span><b>${visitCount.toLocaleString('vi-VN')} lượt</b></div>
         </div>
         <div style="margin:10px 0">
           ${[5, 4, 3, 2, 1].map((st, idx) => {
@@ -1040,8 +1069,7 @@
     box.id = 'ai-box';
     box.innerHTML = `
       <summary>
-        <span>✨ Trợ lý AI biên tập &amp; hoàn thiện văn phong hành chính</span>
-        <span class="tag">Miễn phí</span>
+        <span>✨ Trợ lý AI biên tập &amp; hoàn thiện nội dung văn bản</span>
       </summary>
       <div style="margin-top:8px">
         <p class="mu" style="margin:0 0 6px;font-size:12px">Dán thông tin gốc, gạch đầu dòng thô hoặc ý chính cần trình bày. AI sẽ biên tập lại câu từ suôn mượt, cô đọng, bỏ ý trùng lặp và đúng thể thức NĐ 30/2020 hoặc HD 05-HD/VPTW.</p>
@@ -1177,4 +1205,5 @@
   renderDgTab();
   render();
   syncServerReviews();
+  syncVisits();
 })();

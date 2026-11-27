@@ -75,7 +75,7 @@ const _sm=setMode;setMode=function(m){const ch=m!=mode;
 /* ---------- In / Lưu PDF (mở cửa sổ riêng) ---------- */
 $('#print').onclick=()=>{const w=window.open('','_blank');
  if(!w){try{window.print()}catch(e){msg('Trình duyệt chặn cửa sổ in – hãy cho phép cửa sổ bật lên rồi bấm lại.')}return}
- w.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>'+esc(S.ty||'Văn bản')+'</title><style>@page{size:A4;margin:20mm 20mm 20mm 30mm}body{margin:0;font:15px/1.5 "Times New Roman",Times,serif;color:#000}.hd{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;text-align:center;font-size:13px;line-height:1.2}p{margin:3px 0;text-align:justify}.ln{border-top:1px solid #000;margin:2px auto}</style></head><body>'+$('#paper').innerHTML+'</body></html>');
+ w.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>'+esc(S.ty||'Văn bản')+'</title><style>@page{size:A4;margin:20mm 20mm 20mm 30mm}body{margin:0;font:14pt/1.0 "Times New Roman",Times,serif;color:#000}.hd{display:grid;grid-template-columns:3721fr 5350fr;gap:0;text-align:center;font-size:12pt;line-height:1.0}p{margin:0;text-align:justify;line-height:1.0}.ln{border-top:1px solid #000;margin:2pt auto}</style></head><body>'+$('#paper').innerHTML+'</body></html>');
  w.document.close();w.focus();setTimeout(()=>{w.print()},500);msg('Đã mở cửa sổ in – chọn “Lưu dưới dạng PDF” để lưu.')};
 
 /* ---------- Danh mục đơn vị phân cấp ---------- */

@@ -17,9 +17,9 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 .btn{background:var(--cd);border:1px solid var(--bd);color:var(--tx);padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}.btn.p{background:var(--pr);color:#fff;border-color:var(--pr)}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .wrap{overflow-x:auto;background:#cfd6e2;padding:14px;border-radius:12px}
-#paper{background:#fff;color:#000;width:100%;min-width:560px;max-width:794px;margin:auto;padding:40px 44px 40px 60px;font:15px/1.5 "Times New Roman",Times,serif;box-shadow:0 2px 10px rgba(0,0,0,.25)}
-#paper .hd{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;text-align:center;font-size:13px}#paper p{margin:3px 0;text-align:justify}
-#paper .ln{border-top:1px solid #000;width:40%;margin:2px auto}
+#paper{background:#fff;color:#000;width:210mm;min-width:210mm;min-height:297mm;margin:auto;padding:20mm 20mm 20mm 30mm;font:14pt/1.0 "Times New Roman",Times,serif;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+#paper .hd{display:grid;grid-template-columns:3721fr 5350fr;gap:0;text-align:center;font-size:12pt;line-height:1.0}#paper p{margin:0;text-align:justify;line-height:1.0}
+#paper .ln{border-top:1px solid #000;width:40%;margin:2pt auto}
 .it{padding:8px 10px;border-left:4px solid;border-radius:6px;background:var(--bg);margin:6px 0}.it.er{border-color:var(--er)}.it.wa{border-color:var(--wa)}.it.ok{border-color:var(--ok)}
 .mu{color:var(--mu)}#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:10px;z-index:99;display:none;max-width:90%;box-shadow:0 4px 14px rgba(0,0,0,.35)}.tag{font-size:12px;background:var(--bg);border:1px solid var(--bd);padding:2px 8px;border-radius:99px}
 @media print{body *{visibility:hidden}#paper,#paper *{visibility:visible}#paper{position:absolute;left:0;top:0;box-shadow:none}}
@@ -32,7 +32,7 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 <b>Thông tin văn bản</b> <span class="tag" id="mtag"></span>
 <label>Mẫu soạn sẵn</label><div class="row"><select id="tpl"></select><button class="btn" id="usetpl">Dùng mẫu</button></div>
 <div class="row"><div><label>Loại văn bản</label><select id="type" data-k="type"></select></div><div id="f-so"><label>Số (để trống nếu chưa cấp)</label><input data-k="so" inputmode="numeric"></div></div><div id="f-qcd" style="display:none;margin:6px 0 2px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" data-k="qcDirect" style="width:auto"> Ban hành trực tiếp (có Số, Nơi nhận, Người ký)</label></div>
-<label>Ngày ban hành</label><input type="date" data-k="date">
+<label>Ngày ban hành (dd/mm/yyyy)</label><div style="display:flex;gap:6px;align-items:center"><input id="date-dmy" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" style="flex:1"><input type="date" data-k="date" title="Chọn từ lịch" style="width:42px;padding:7px 4px;flex:none;cursor:pointer"></div>
 <label>Trích yếu nội dung (Công văn: nhập sau “V/v”)</label><input data-k="ty">
 <div id="f-tq"><label>Thẩm quyền ban hành (QĐ, NQ khối Nhà nước; mỗi dòng một dòng in đậm)</label><textarea data-k="tq" style="min-height:60px"></textarea></div><label>Căn cứ ban hành (mỗi dòng một căn cứ)</label><textarea data-k="cc"></textarea>
 <div id="f-kg"><label>Kính gửi / Kính trình</label><input data-k="kg"></div><div id="f-dv"><label>Phòng soạn thảo (viết tắt, VD: TTTK) – tự điền vào “Lưu: VT, …” và ký hiệu Công văn</label><input data-k="dv"></div>
@@ -238,7 +238,9 @@ function fillLead(){const ld=leaders();$('#lead').innerHTML='<option value="">�
 function fillSel(){const s=$('#type');s.innerHTML=T[mode].map(t=>`<option value="${t[0]}">${t[1]} (${t[2]||'không ghi tên loại'})</option>`).join('');s.value=S.type;$('#tpl').innerHTML=T[mode].map(t=>`<option value="${t[0]}">${t[1]}</option>`+(mode=='nn'&&t[0]=='TB'?'<option value="TB2">Thông báo (có căn cứ, “kính thông báo”)</option>':'')).join('');$('#tpl').value=S.type}
 function vis(){const kd=kind(),nn=mode=='nn',sh=(id,v)=>$(id).style.display=v?'':'none';sh('#f-tq',nn&&kd=='qd');sh('#f-kg',['cv','tl','pt'].includes(kd));sh('#f-dv',nn);sh('#f-tk',kd=='bb');sh('#f-pt',kd=='pt');sh('#ph-w',S.phOn);sh('#pgd-w',S.pgdOn);sh('#f-nn',kd!='pt');sh('#f-sg',kd!='pt')}
 function setMode(m){mode=m;document.body.dataset.mode=m;$('#m-nn').className=m=='nn'?'on':'';$('#m-dang').className=m=='dang'?'on':'';$('#mtag').textContent=m=='nn'?'Khối Nhà nước – NĐ 30/2020':'Khối Đảng – HD 05-HD/VPTW';if(!T[m].some(t=>t[0]==S.type))S.type='KH';fillSel();if(!S.nn&&kind()!='pt')S.nn=mkTpl(S.type).nn;vis();sync();render()}
-function sync(){$$('[data-k]').forEach(e=>{if(e.type=='checkbox')e.checked=!!S[e.dataset.k];else e.value=S[e.dataset.k]||''})}
+const isoToDmy=s=>{const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:''};
+const dmyToIso=s=>{const m=String(s||'').trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(!m)return '';const d=+m[1],mo=+m[2],y=+m[3];if(mo<1||mo>12||d<1||d>31)return '';const dt=new Date(y,mo-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return '';return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
+function sync(){$$('[data-k]').forEach(e=>{if(e.type=='checkbox')e.checked=!!S[e.dataset.k];else e.value=S[e.dataset.k]||''});const dmy=$('#date-dmy');if(dmy&&document.activeElement!==dmy)dmy.value=isoToDmy(S.date)}
 const NB='\u00a0',noSo=()=>mode=='nn'&&['BB','PT','QC','QyĐ'].includes(S.type);
 function splitOrg(s){s=(s||'').trim();if(!s)return[];const m=s.match(/^(.*?\S)\s+((?:THÀNH PHỐ|TỈNH|HUYỆN|QUẬN|THỊ XÃ|XÃ(?! HỘI)|PHƯỜNG|ĐẶC KHU)\s.+)$/);return m?[m[1],m[2]]:[s]}
 function soLine(){const t=TY(S.type);if(mode=='nn'){const suf=t[3]=='cv'?C.nA+(S.dv?'-'+S.dv:''):(S.type=='NQ'?'NQ-'+(C.nqA||'HĐND'):t[2]+'-'+C.nA);return 'Số:'+(S.so?' '+S.so:NB.repeat(14))+'/'+suf}return 'Số '+(S.so||NB.repeat(6))+'-'+t[2]+'/'+C.dA}
@@ -248,7 +250,7 @@ function build(){const nn=mode=='nn',t=TY(S.type),kd=t[3],ty=S.ty.replace(/^V\/v
 if(!plain){if(!nq)splitOrg(nn?C.nP:C.dP).forEach(x=>L.push({x}));
 const og=splitOrg(nq?C.nqO:(nn?C.nO:C.dO));og.forEach((x,i)=>L.push({x,b:1,rule:nn&&i==og.length-1?'s':''}));if(!nn)L.push({x:'*'});
 if(kd!='pt'&&!noSo())L.push({x:soLine(),gap:1,so:1,sz:13});
-if(kd=='cv'&&ty)L.push({x:'V/v '+ty,i:1,sz:12,gap:1});
+if(kd=='cv'&&ty)L.push({x:'V/v '+ty,sz:12,gap:1});
 if(nn)R.push({x:'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',b:1,sz:12},{x:'Độc lập - Tự do - Hạnh phúc',b:1,sz:13,rule:'g'});else R.push({x:'ĐẢNG CỘNG SẢN VIỆT NAM',b:1,sz:15,rule:'g'});
 R.push({x:dt(),i:1,sz:13,gap:1})}
 const P=(rs,o)=>B.push({rs:typeof rs=='string'?[{x:rs}]:rs,...o});
@@ -278,18 +280,24 @@ else F={k:kd=='bb'?'bb':'std',nr,q:S.quyen,c:S.cv,ten:S.ten,tk:S.tk};
 return{L,R,B,F,plain}}
 const rh=rs=>rs.map(r=>{let x=esc(r.x);if(r.b)x=`<b>${x}</b>`;if(r.i)x=`<i>${x}</i>`;return x}).join('');
 const _splitHd=(L,R)=>{const iL=L.findIndex(o=>o.so||/^V\/v\s/i.test(o.x));const L1=iL<0?L:L.slice(0,iL),L2=iL<0?[]:L.slice(iL);const R1=R.length?R.slice(0,-1):[],R2=R.length?[R[R.length-1]]:[];return{L1,L2,R1,R2}};
-function render(){const m=build(),h=a=>a.map(o=>{const st=`${o.sz?`font-size:${o.sz}px;`:''}${o.gap?'margin-top:6px;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic':''}`;
-if(o.rule=='g')return `<div style="${st}"><span style="display:inline-block;border-bottom:1px solid #000;padding-bottom:3px">${esc(o.x)}</span></div>`;
-if(o.rule=='s')return `<div style="${st}"><span style="display:inline-block">${esc(o.x)}<span style="display:block;border-top:1px solid #000;width:50%;margin:3px auto 0"></span></span></div>`;
+function render(){const m=build(),h=a=>a.map(o=>{const st=`font-size:${o.sz||12}pt;line-height:1.0;${o.gap?'margin-top:6pt;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic':''}`;
+if(o.rule=='g')return `<div style="${st}"><span style="display:inline-block;border-bottom:1px solid #000;padding-bottom:1pt">${esc(o.x)}</span></div>`;
+if(o.rule=='s')return `<div style="${st}"><span style="display:inline-block">${esc(o.x)}<span style="display:block;border-top:1px solid #000;width:50%;margin:2pt auto 0"></span></span></div>`;
 return `<div style="${st}">${esc(o.x)}</div>`}).join('');
-const sg=(q,c,ten)=>[q,c].filter(Boolean).map(x=>`<b>${esc(x)}</b>`).join('<br>')+`<div style="height:60px"></div><b>${esc(ten)}</b>`;
-const nrh=a=>`<div style="margin-left:1cm"><b style="font-size:12px"><i>Nơi nhận:</i></b>${a.map(l=>`<div style="font-size:12px">${esc(l)}</div>`).join('')}</div>`;
+const sg=(q,c,ten)=>[q,c].filter(Boolean).map(x=>`<div style="font-size:14pt;line-height:1.0"><b>${esc(x)}</b></div>`).join('')+`<div style="height:60pt"></div><div style="font-size:14pt;line-height:1.0"><b>${esc(ten)}</b></div>`;
+const nrh=a=>`<div style="margin-left:1cm;line-height:1.0"><b style="font-size:12pt"><i>Nơi nhận:</i></b>${a.map(l=>`<div style="font-size:11pt;line-height:1.0">${esc(l)}</div>`).join('')}</div>`;
 let ft='',F=m.F;
-if(F.k=='std')ft=`<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-top:14px"><div>${nrh(F.nr)}</div><div style="text-align:center">${sg(F.q,F.c,F.ten)}</div></div>`;
-else if(F.k=='bb')ft=`<div style="display:grid;grid-template-columns:1fr 1fr;text-align:center;margin-top:14px"><div><b>THƯ KÝ</b><div style="height:60px"></div><b>${esc(F.tk)}</b></div><div>${sg(F.q,F.c,F.ten)}</div></div><div style="margin-top:8px">${nrh(F.nr)}</div>`;
-else if(F.k=='pt')ft='<table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-top:14px;text-align:center">'+F.rows.map((r,i)=>`<tr>${r.map(c=>`<td style="padding:4px;vertical-align:top">${c.h?`<b>${esc(c.h)}</b>`:''}</td>`).join('')}</tr><tr style="height:56px">${r.map(()=>'<td></td>').join('')}</tr><tr>${r.map(c=>`<td style="padding:4px;vertical-align:top">${c.n?`<b>${esc(c.n)}</b>`:''}</td>`).join('')}</tr>${i==0?'<tr style="height:14px"><td></td></tr>':''}`).join('')+'</table>';
-const bl=m.B.map(b=>b.rule?'<div class="ln" style="width:90px"></div>':`<p style="${b.al=='c'?'text-align:center;':''}${b.ind?'text-indent:1cm;':''}${b.sz?`font-size:${b.sz}px;`:''}${b.gap?'margin-top:8px':''}">${rh(b.rs)}</p>`).join('');
-let hdHtml='';if(!m.plain){const{L1,L2,R1,R2}=_splitHd(m.L,m.R);hdHtml=`<div class="hd"><div>${h(L1)}</div><div>${h(R1)}</div></div><div class="hd"><div>${h(L2)}</div><div>${h(R2)}</div></div>`}
+const ftGap=F.k!='none'?'<div style="font-size:14pt;line-height:1.0">&nbsp;</div>':'';
+if(F.k=='std')ft=ftGap+`<div style="display:grid;grid-template-columns:4700fr 4371fr;gap:0"><div>${nrh(F.nr)}</div><div style="text-align:center">${sg(F.q,F.c,F.ten)}</div></div>`;
+else if(F.k=='bb')ft=ftGap+`<div style="display:grid;grid-template-columns:1fr 1fr;text-align:center"><div><b style="font-size:14pt">THƯ KÝ</b><div style="height:60pt"></div><b style="font-size:14pt">${esc(F.tk)}</b></div><div>${sg(F.q,F.c,F.ten)}</div></div><div style="margin-top:6pt">${nrh(F.nr)}</div>`;
+else if(F.k=='pt')ft=ftGap+'<table style="width:100%;table-layout:fixed;border-collapse:collapse;text-align:center;line-height:1.0">'+F.rows.map((r,i)=>`<tr>${r.map(c=>`<td style="padding:2pt 4pt;vertical-align:top">${c.h?`<b>${esc(c.h)}</b>`:''}</td>`).join('')}</tr><tr style="height:55pt">${r.map(()=>'<td></td>').join('')}</tr><tr>${r.map(c=>`<td style="padding:2pt 4pt;vertical-align:top">${c.n?`<b>${esc(c.n)}</b>`:''}</td>`).join('')}</tr>${i==0?'<tr style="height:12pt"><td></td></tr>':''}`).join('')+'</table>';
+const lastBi=m.B.reduce((a,b,i)=>b.body?i:a,-1);
+const bl=m.B.map((b,idx)=>{
+if(b.rule)return '<div class="ln" style="width:90px"></div>';
+if(b.kg)return `<p style="text-align:center;font-size:${b.sz||14}pt;margin:0;line-height:1.0">${rh(b.rs)}</p><p style="text-align:left;font-size:14pt;margin:0;line-height:1.0">&nbsp;</p>`;
+if(b.body){const isLast=idx===lastBi;return `<p style="${b.al=='c'?'text-align:center;':''}${b.ind?'text-indent:1cm;':''}${b.sz?`font-size:${b.sz}pt;`:''}margin:${isLast?'0':'6pt 0'};line-height:1.0">${rh(b.rs)}</p>`}
+return `<p style="${b.al=='c'?'text-align:center;':''}${b.ind?'text-indent:1cm;':''}${b.sz?`font-size:${b.sz}pt;`:''}margin-top:${b.gap?'4pt':'0'};margin-bottom:2pt;line-height:1.0">${rh(b.rs)}</p>`}).join('');
+let hdHtml='';if(!m.plain){const{L1,L2,R1,R2}=_splitHd(m.L,m.R);hdHtml=`<div class="hd"><div>${h(L1)}</div><div>${h(R1)}</div></div><div class="hd"><div>${h(L2)}</div><div>${h(R2)}</div></div><div style="font-size:12pt;line-height:1.0">&nbsp;</div>`}
 $('#paper').innerHTML=`${hdHtml}${bl}${ft}`}
 /* Xuất .docx (tự dựng bằng JSZip) */
 const X=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -373,7 +381,8 @@ function runCheck(txt){const R=check(txt),e=R.filter(r=>r[0]=='er').length,w=R.f
 const nav=t=>{$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));$$('.tab').forEach(s=>s.classList.toggle('on',s.id==t));if(t=='ls')hist();if(t=='tra')kb()}
 $$('nav button').forEach(b=>b.onclick=()=>nav(b.dataset.t));
 $('#m-nn').onclick=()=>setMode('nn');$('#m-dang').onclick=()=>setMode('dang');
-$$('[data-k]').forEach(e=>e.oninput=()=>{S[e.dataset.k]=e.type=='checkbox'?e.checked:e.value;vis();if(e.dataset.k=='type'){if(kind()!='pt'&&!S.nn)S.nn=mkTpl(S.type).nn;sync()}if(e.dataset.k=='dv'){S.nn=S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m,(a,b)=>`${b} ${S.dv}.`);$('[data-k=nn]').value=S.nn}render()});
+$$('[data-k]').forEach(e=>e.oninput=()=>{S[e.dataset.k]=e.type=='checkbox'?e.checked:e.value;if(e.dataset.k=='date'){const dmy=$('#date-dmy');if(dmy)dmy.value=isoToDmy(S.date)}vis();if(e.dataset.k=='type'){if(kind()!='pt'&&!S.nn)S.nn=mkTpl(S.type).nn;sync()}if(e.dataset.k=='dv'){S.nn=S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m,(a,b)=>`${b} ${S.dv}.`);$('[data-k=nn]').value=S.nn}render()});
+const _dmy=$('#date-dmy');if(_dmy){_dmy.oninput=()=>{const v=dmyToIso(_dmy.value);if(v){S.date=v;$('[data-k=date]').value=v;render()}};_dmy.onblur=()=>{if(S.date)_dmy.value=isoToDmy(S.date)}}
 $('#usetpl').onclick=()=>{const k=$('#tpl').value;if(!S.dv)S.dv=C.dv;Object.assign(S,mkTpl(k));fillSel();vis();sync();render();msg('Đã áp dụng mẫu '+name(k)+'. Thay các chỗ “…” bằng nội dung thực tế.')};
 let tt;function msg(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',3500)}
 $('#save').onclick=()=>{const h=ls.g('vts-hs',[]);h.unshift({t:Date.now(),mode,S:{...S}});msg(ls.s('vts-hs',h.slice(0,50))?'Đã lưu vào lịch sử.':'Trình duyệt không cho phép lưu trữ.')};

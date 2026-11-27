@@ -16,8 +16,18 @@ app.use(express.static(__dirname, {
 }));
 
 const reviewsStore = [];
+let visitsCount = 0;
 const reviewHits = new Map();
 const aiHits = new Map();
+
+app.get('/api/visits', (_req, res) => {
+  res.json({ visits: visitsCount });
+});
+
+app.post('/api/visits', (_req, res) => {
+  visitsCount += 1;
+  res.json({ visits: visitsCount });
+});
 
 app.get('/api/reviews', (_req, res) => {
   res.json(reviewsStore);

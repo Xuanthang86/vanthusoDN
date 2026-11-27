@@ -76,39 +76,47 @@ export async function onRequestPost({ request, env }) {
 
     /* 1. Google Gemini Free Tier */
     if (env && env.GEMINI_API_KEY) {
-      const resp = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:generateContent',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': env.GEMINI_API_KEY
-          },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: contents }] }],
-            generationConfig: {
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: 'OBJECT',
-                properties: {
-                  ty: { type: 'STRING' },
-                  cc: { type: 'ARRAY', items: { type: 'STRING' } },
-                  nd: { type: 'STRING' },
-                  summary: { type: 'STRING' }
-                },
-                required: ['ty', 'cc', 'nd', 'summary']
+      const models = [env.GEMINI_MODEL || 'gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
+      let lastStatus = 500;
+      let lastData = null;
+      for (const model of models) {
+        const resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': env.GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemInstruction }] },
+              contents: [{ role: 'user', parts: [{ text: contents }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                  type: 'OBJECT',
+                  properties: {
+                    ty: { type: 'STRING' },
+                    cc: { type: 'ARRAY', items: { type: 'STRING' } },
+                    nd: { type: 'STRING' },
+                    summary: { type: 'STRING' }
+                  },
+                  required: ['ty', 'cc', 'nd', 'summary']
+                }
               }
-            }
-          })
+            })
+          }
+        );
+        const data = await resp.json();
+        if (resp.ok) {
+          const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          return json(normalizeOut(extractJson(txt), `Google Gemini (${model})`));
         }
-      );
-      const data = await resp.json();
-      if (!resp.ok) {
-        return json({ error: data?.error?.message || `Lỗi Gemini API (${resp.status}).` }, resp.status);
+        lastStatus = resp.status;
+        lastData = data;
+        if (resp.status !== 404) break;
       }
-      const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return json(normalizeOut(extractJson(txt), 'Google Gemini (miễn phí)'));
+      return json({ error: lastData?.error?.message || `Lỗi Gemini API (${lastStatus}).` }, lastStatus);
     }
 
     /* 2. Groq Free Tier (nếu cấu hình GROQ_API_KEY) */
