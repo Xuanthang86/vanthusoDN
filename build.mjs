@@ -1,14 +1,33 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 
-const stamp = (process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || '').slice(0, 10) || String(Date.now());
+const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex').slice(0, 10);
 
-if (process.env.CF_PAGES || process.env.CI) {
-  let html = fs.readFileSync('index.html', 'utf8');
-  html = html
-    .replace(/src="patch\.js(?:\?v=[^"]*)?"/, `src="patch.js?v=${stamp}"`)
-    .replace(/src="features\.js(?:\?v=[^"]*)?"/, `src="features.js?v=${stamp}"`);
+const patchHash = sha(fs.readFileSync('patch.js'));
+const featuresHash = sha(fs.readFileSync('features.js'));
+
+let html = fs.readFileSync('index.html', 'utf8');
+html = html
+  .replace(/src="patch\.js(?:\?v=[^"]*)?"/, `src="patch.js?v=${patchHash}"`)
+  .replace(/src="features\.js(?:\?v=[^"]*)?"/, `src="features.js?v=${featuresHash}"`);
+
+const htmlForHash = html.replace(/<meta name="app-version" content="[^"]*">/, '<meta name="app-version" content="">');
+const appVersion = sha(htmlForHash + ':' + patchHash + ':' + featuresHash);
+
+html = html.replace(
+  /<meta name="app-version" content="[^"]*">/,
+  `<meta name="app-version" content="${appVersion}">`
+);
+
+const prevHtml = fs.readFileSync('index.html', 'utf8');
+if (html !== prevHtml) {
   fs.writeFileSync('index.html', html, 'utf8');
-  console.log(`Stamped Cloudflare Pages build assets with v=${stamp}`);
-} else {
-  console.log('Static site build verified');
 }
+
+const versionPayload = JSON.stringify({ v: appVersion }) + '\n';
+const prevVersion = fs.existsSync('version.json') ? fs.readFileSync('version.json', 'utf8') : '';
+if (versionPayload !== prevVersion) {
+  fs.writeFileSync('version.json', versionPayload, 'utf8');
+}
+
+console.log(`Build stamped: v=${appVersion} (patch=${patchHash}, features=${featuresHash})`);
