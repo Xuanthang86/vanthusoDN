@@ -63,6 +63,15 @@ app.post('/api/reviews', (req, res) => {
   return res.status(201).json(item);
 });
 
+app.get('/api/ai/polish', async (_req, res) => {
+  try {
+    const { getAvailableAiProviders } = await import('./ai-helper.mjs');
+    return res.json({ providers: getAvailableAiProviders() });
+  } catch {
+    return res.json({ providers: {} });
+  }
+});
+
 app.post('/api/ai/polish', async (req, res) => {
   const ip = req.ip || 'unknown';
   const now = Date.now();
@@ -94,6 +103,7 @@ app.post('/api/ai/polish', async (req, res) => {
       docTypeName: typeof b.docTypeName === 'string' ? b.docTypeName.slice(0, 80) : 'Kế hoạch',
       orgName: typeof b.orgName === 'string' ? b.orgName.slice(0, 200) : '',
       editStyle: ['polish', 'draft', 'concise'].includes(b.editStyle) ? b.editStyle : 'polish',
+      provider: ['auto', 'gemini', 'openai', 'claude', 'groq', 'workers_ai'].includes(b.provider) ? b.provider : 'auto',
       rawInfo,
       currentDraft
     });

@@ -7,8 +7,8 @@
   /* ---------- CSS bổ sung ---------- */
   const css = document.createElement('style');
   css.textContent = `
-  .opt-grid{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:16px}
-  .dg-grid{display:grid;grid-template-columns:1.7fr minmax(290px,380px);gap:16px}
+  .opt-grid{display:grid;grid-template-columns:minmax(380px,520px) 1fr;gap:16px}
+  .dg-grid{display:grid;grid-template-columns:1.4fr minmax(350px,460px);gap:16px}
   @media(max-width:960px){.opt-grid,.dg-grid{grid-template-columns:1fr}}
   .dg-grid .chips{gap:6px;margin:6px 0 8px}
   .dg-grid .chip{padding:5px 10px;font-size:12.5px}
@@ -624,8 +624,9 @@
         </tbody>
       </table>
       ${a.issues.length ? a.issues.map(i => `<div class="it wa">${esc(i)}</div>`).join('') : '<div class="it ok">Cấu trúc và thông số cơ bản phù hợp thể thức quy định.</div>'}
-      <div class="bar" style="margin-top:12px">
+      <div class="bar" style="margin-top:12px;align-items:center">
         <button type="button" class="btn p" id="opt-to-editor">Tối ưu & Nạp vào Soạn thảo</button>
+        <select id="opt-ai-provider" style="width:auto;min-width:170px;padding:7px 8px" title="Chọn công cụ AI"></select>
         <button type="button" class="btn" id="opt-ai-polish" style="border-color:var(--pr);color:var(--pr)">✨ AI biên tập câu từ & nạp Soạn thảo</button>
         <button type="button" class="btn" id="opt-dl-docx">Xuất ngay Word (.docx) đã tối ưu</button>
         <button type="button" class="btn" id="opt-learn">Học thói quen file vào hồ sơ cá nhân</button>
@@ -729,6 +730,9 @@
       msg('Đã tối ưu thể thức từ file "' + lastAnalysis.fileName + '" và nạp vào Soạn thảo.');
     };
 
+    const optSel = q('#opt-ai-provider');
+    if (optSel) populateProviderSelect(optSel);
+
     const optAi = q('#opt-ai-polish');
     if (optAi && lastAnalysis) optAi.onclick = async () => {
       const errBox = q('#opt-ai-err');
@@ -745,6 +749,7 @@
           docTypeName: (T[lastAnalysis.detectedMode].find(t => t[0] === lastAnalysis.detectedType) || [])[1] || lastAnalysis.detectedType,
           orgName,
           editStyle: 'polish',
+          provider: optSel ? optSel.value : selectedAiProvider,
           rawInfo: '',
           currentDraft: { ty: d.ty || '', cc: d.cc || '', nd: d.nd || '' }
         });
@@ -930,8 +935,7 @@
     el.innerHTML = `<div class="dg-grid">
       <div class="card">
         <b>Đánh giá trải nghiệm của bạn</b>
-        <p class="mu" style="margin:4px 0 8px">Chỉ cần chọn số sao và bấm vào các gợi ý bên dưới — không cần gõ chữ.</p>
-        <label style="margin-top:6px">1. Mức độ hài lòng</label>
+        <label style="margin-top:8px">1. Mức độ hài lòng</label>
         <div class="stars" id="dg-stars" style="margin:4px 0">
           ${[1, 2, 3, 4, 5].map(i => `<button type="button" class="star-btn${i <= (rvState.hover || rvState.stars) ? ' on' : ''}" data-s="${i}" title="${i} sao">★</button>`).join('')}
         </div>
@@ -1041,8 +1045,50 @@
   }
 
   /* ========================================================================
-   * PHẦN 4: TRỢ LÝ AI BIÊN TẬP & HOÀN THIỆN NỘI DUNG HÀNH CHÍNH
+   * PHẦN 4: TRỢ LÝ AI BIÊN TẬP & HOÀN THIỆN NỘI DUNG VĂN BẢN (ĐA CÔNG CỤ AI)
    * ======================================================================== */
+  const AI_PROVIDERS = [
+    ['auto', 'Tự động (ưu tiên AI sẵn có)'],
+    ['gemini', 'Google Gemini'],
+    ['openai', 'ChatGPT (OpenAI)'],
+    ['claude', 'Claude (Anthropic)'],
+    ['groq', 'Groq (Llama 3.3)'],
+    ['workers_ai', 'Cloudflare Workers AI']
+  ];
+  let availableProviders = {};
+  let selectedAiProvider = ls.g('vts-ai-prov', 'auto');
+
+  function populateProviderSelect(sel) {
+    if (!sel) return;
+    sel.innerHTML = AI_PROVIDERS.map(([id, label]) => {
+      const tag = id === 'auto'
+        ? ''
+        : (availableProviders[id] ? ' ✓' : (Object.keys(availableProviders).length ? ' (chưa cấu hình)' : ''));
+      return `<option value="${id}">${esc(label + tag)}</option>`;
+    }).join('');
+    sel.value = AI_PROVIDERS.some(x => x[0] === selectedAiProvider) ? selectedAiProvider : 'auto';
+    sel.onchange = () => {
+      selectedAiProvider = sel.value;
+      ls.s('vts-ai-prov', selectedAiProvider);
+      qa('#ai-provider, #opt-ai-provider').forEach(o => { if (o !== sel) o.value = selectedAiProvider; });
+    };
+  }
+
+  async function detectAiProviders() {
+    try {
+      const resp = await fetch('/api/ai/polish', { headers: { Accept: 'application/json' } });
+      const ct = resp.headers.get('content-type') || '';
+      if (resp.ok && ct.includes('application/json')) {
+        const d = await resp.json();
+        if (d && d.providers) {
+          availableProviders = d.providers;
+          populateProviderSelect(q('#ai-provider'));
+          populateProviderSelect(q('#opt-ai-provider'));
+        }
+      }
+    } catch (_) {}
+  }
+
   async function callAiPolish(payload) {
     const resp = await fetch('/api/ai/polish', {
       method: 'POST',
@@ -1051,7 +1097,7 @@
     });
     const ct = resp.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
-      throw new Error('Máy chủ chưa hỗ trợ API /api/ai/polish (mã ' + resp.status + ').');
+      throw new Error('Máy chủ không trả về JSON cho /api/ai/polish (mã ' + resp.status + '). Hãy kiểm tra thư mục functions/api/ai/polish.js trên Cloudflare Pages (Build output directory phải là "/" để kích hoạt Functions).');
     }
     const data = await resp.json();
     if (!resp.ok) {
@@ -1075,7 +1121,11 @@
         <p class="mu" style="margin:0 0 6px;font-size:12px">Dán thông tin gốc, gạch đầu dòng thô hoặc ý chính cần trình bày. AI sẽ biên tập lại câu từ suôn mượt, cô đọng, bỏ ý trùng lặp và đúng thể thức NĐ 30/2020 hoặc HD 05-HD/VPTW.</p>
         <label style="margin-top:4px">Thông tin gốc / ghi chú thô (tùy chọn nếu đã có nội dung bên dưới)</label>
         <textarea id="ai-raw" style="min-height:86px" placeholder="VD: Họp giao ban tuần tới sáng thứ Hai lúc 8h tại phòng họp số 2, đánh giá tiến độ chuyển đổi số quý II, các phòng báo cáo kết quả, hoàn thành trước 15/5..."></textarea>
-        <div class="row" style="margin-top:6px;align-items:end">
+        <div class="row" style="margin-top:6px">
+          <div>
+            <label style="margin-top:4px">Công cụ AI</label>
+            <select id="ai-provider"></select>
+          </div>
           <div>
             <label style="margin-top:4px">Chế độ biên tập</label>
             <select id="ai-style">
@@ -1084,9 +1134,9 @@
               <option value="concise">Rút gọn cô đọng, súc tích hơn nữa</option>
             </select>
           </div>
-          <div>
-            <button type="button" class="btn p" id="ai-run" style="width:100%">✨ Biên tập với AI</button>
-          </div>
+        </div>
+        <div style="margin-top:8px">
+          <button type="button" class="btn p" id="ai-run" style="width:100%">✨ Biên tập với AI</button>
         </div>
         <div id="ai-err"></div>
         <div id="ai-out" style="display:none"></div>
@@ -1094,6 +1144,9 @@
     `;
     if (ndLabel) card.insertBefore(box, ndLabel);
     else card.appendChild(box);
+
+    populateProviderSelect(q('#ai-provider'));
+    detectAiProviders();
 
     let lastAiResult = null;
     const runBtn = q('#ai-run');
@@ -1104,6 +1157,7 @@
       errEl.innerHTML = '';
       const rawInfo = (q('#ai-raw')?.value || '').trim();
       const editStyle = q('#ai-style')?.value || 'polish';
+      const provider = q('#ai-provider')?.value || selectedAiProvider || 'auto';
       if (!rawInfo && !(S.nd || '').trim() && !(S.ty || '').trim()) {
         errEl.innerHTML = '<div class="ai-err">Hãy nhập thông tin gốc vào ô trên hoặc điền nháp ở ô Nội dung văn bản rồi bấm lại.</div>';
         return;
@@ -1121,6 +1175,7 @@
           docTypeName: name(S.type),
           orgName: mode === 'dang' ? C.dO : C.nO,
           editStyle,
+          provider,
           rawInfo,
           currentDraft: {
             ty: S.ty || '',

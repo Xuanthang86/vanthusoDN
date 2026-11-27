@@ -121,7 +121,7 @@ const ia=fi('Khối Nhà nước'),id_=fi('Khối Đảng'),il=fi('Danh bạ');
 const Lc=document.createElement('div'),Rc=document.createElement('div');
 kids.slice(ia,id_).forEach(e=>Lc.appendChild(e));kids.slice(id_,il).forEach(e=>Rc.appendChild(e));
 Lc.firstElementChild.textContent='Khối Chính quyền';
-const g=document.createElement('div');g.className='cfg';g.append(Lc,Rc);card.insertBefore(g,kids[il]);card.style.maxWidth='1100px';
+const g=document.createElement('div');g.className='cfg';g.append(Lc,Rc);card.insertBefore(g,kids[il]);card.style.maxWidth='none';
 kids[il].style.display='none';kids[il+1].style.display='none';
 const ta=kids[il+2];
 

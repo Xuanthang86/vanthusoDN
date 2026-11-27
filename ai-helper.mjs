@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 let cachedClient = null;
-function getClient() {
+function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   if (!cachedClient) {
@@ -15,6 +15,16 @@ function getClient() {
     });
   }
   return cachedClient;
+}
+
+export function getAvailableAiProviders() {
+  return {
+    gemini: Boolean(process.env.GEMINI_API_KEY),
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    claude: Boolean(process.env.ANTHROPIC_API_KEY),
+    groq: Boolean(process.env.GROQ_API_KEY),
+    workers_ai: false,
+  };
 }
 
 export function buildPolishPromptPayload({
@@ -51,7 +61,7 @@ export function buildPolishPromptPayload({
     "   - Đoạn cuối cùng của 'nd' kết thúc bằng './.' (trừ khi đã có).",
     "   - Phần 'cc' (mảng chuỗi): mỗi căn cứ kết thúc bằng dấu ';' (nếu khối Nhà nước và dòng cuối là 'Theo đề nghị của ...' thì kết thúc bằng '.'). Chỉ giữ căn cứ có trong đầu vào hoặc thật sự phù hợp nếu người dùng yêu cầu viết hoàn chỉnh; nếu không có căn cứ thì trả về mảng rỗng.",
     "   - Phần 'ty' (trích yếu): ngắn gọn, phản ánh đúng nội dung chính, không kết thúc bằng dấu chấm/phẩy. Nếu là Công văn thì không ghi chữ 'V/v' ở đầu.",
-    "4. Trả về JSON đúng schema yêu cầu, văn bản tiếng Việt có dấu chuẩn Unicode.",
+    "4. Trả về duy nhất JSON hợp lệ gồm 4 khóa: ty (string), cc (string[]), nd (string), summary (string), văn bản tiếng Việt có dấu chuẩn Unicode.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -102,6 +112,22 @@ const RESPONSE_SCHEMA = {
   required: ["ty", "cc", "nd", "summary"],
 };
 
+function extractJson(text) {
+  const s = String(text || "").trim();
+  const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return JSON.parse((fenced ? fenced[1] : s).trim());
+}
+
+function normalizeOut(parsed, provider) {
+  return {
+    ty: String(parsed.ty || "").trim(),
+    cc: Array.isArray(parsed.cc) ? parsed.cc.map((x) => String(x).trim()).filter(Boolean) : [],
+    nd: String(parsed.nd || "").trim(),
+    summary: String(parsed.summary || "").trim(),
+    provider,
+  };
+}
+
 async function withRetry(fn, maxRetries = 1) {
   let lastErr;
   for (let i = 0; i <= maxRetries; i++) {
@@ -120,18 +146,9 @@ async function withRetry(fn, maxRetries = 1) {
   throw lastErr;
 }
 
-export async function polishDocumentWithAI(input) {
-  const ai = getClient();
-  if (!ai) {
-    const err = new Error(
-      "Chưa có GEMINI_API_KEY trên máy chủ. Hãy kiểm tra phần Settings > Secrets (hoặc biến môi trường trên Cloudflare Pages)."
-    );
-    err.statusCode = 503;
-    throw err;
-  }
-
-  const { systemInstruction, contents } = buildPolishPromptPayload(input);
-
+async function callGemini({ systemInstruction, contents }) {
+  const ai = getGeminiClient();
+  if (!ai) return null;
   const response = await withRetry(() =>
     ai.models.generateContent({
       model: "gemini-4-hydrogen",
@@ -143,14 +160,132 @@ export async function polishDocumentWithAI(input) {
       },
     })
   );
+  return normalizeOut(extractJson(response.text || ""), "Google Gemini (gemini-4-hydrogen)");
+}
 
-  const rawText = (response.text || "").trim();
-  const parsed = JSON.parse(rawText);
-  return {
-    ty: String(parsed.ty || "").trim(),
-    cc: Array.isArray(parsed.cc) ? parsed.cc.map((x) => String(x).trim()).filter(Boolean) : [],
-    nd: String(parsed.nd || "").trim(),
-    summary: String(parsed.summary || "").trim(),
-    provider: "Gemini (gemini-4-hydrogen)",
+async function callOpenAI({ systemInstruction, contents }) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: contents },
+      ],
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const err = new Error(data?.error?.message || `Lỗi ChatGPT / OpenAI (${resp.status}).`);
+    err.statusCode = resp.status;
+    throw err;
+  }
+  return normalizeOut(extractJson(data?.choices?.[0]?.message?.content || ""), `ChatGPT (${model})`);
+}
+
+async function callClaude({ systemInstruction, contents }) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const model = process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-latest";
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      system: systemInstruction,
+      messages: [{ role: "user", content: contents }],
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const err = new Error(data?.error?.message || `Lỗi Claude / Anthropic (${resp.status}).`);
+    err.statusCode = resp.status;
+    throw err;
+  }
+  const txt = (data?.content || []).map((b) => b?.text || "").join("");
+  return normalizeOut(extractJson(txt), `Claude (${model})`);
+}
+
+async function callGroq({ systemInstruction, contents }) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return null;
+  const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: contents },
+      ],
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const err = new Error(data?.error?.message || `Lỗi Groq (${resp.status}).`);
+    err.statusCode = resp.status;
+    throw err;
+  }
+  return normalizeOut(extractJson(data?.choices?.[0]?.message?.content || ""), "Groq (Llama 3.3)");
+}
+
+export async function polishDocumentWithAI(input) {
+  const payload = buildPolishPromptPayload(input);
+  const choice = input.provider || "auto";
+
+  const runners = {
+    gemini: { fn: callGemini, envName: "GEMINI_API_KEY", label: "Google Gemini" },
+    openai: { fn: callOpenAI, envName: "OPENAI_API_KEY", label: "ChatGPT (OpenAI)" },
+    claude: { fn: callClaude, envName: "ANTHROPIC_API_KEY", label: "Claude (Anthropic)" },
+    groq: { fn: callGroq, envName: "GROQ_API_KEY", label: "Groq" },
   };
+
+  if (choice !== "auto") {
+    if (choice === "workers_ai") {
+      const err = new Error("Cloudflare Workers AI chỉ hoạt động khi triển khai trên Cloudflare Pages với binding AI.");
+      err.statusCode = 503;
+      throw err;
+    }
+    const target = runners[choice];
+    if (!target) {
+      const err = new Error("Công cụ AI không hợp lệ.");
+      err.statusCode = 400;
+      throw err;
+    }
+    const out = await target.fn(payload);
+    if (!out) {
+      const err = new Error(`Máy chủ chưa cấu hình ${target.envName} cho ${target.label}. Hãy thêm biến ${target.envName} trong Settings > Secrets.`);
+      err.statusCode = 503;
+      throw err;
+    }
+    return out;
+  }
+
+  for (const key of ["gemini", "openai", "claude", "groq"]) {
+    const out = await runners[key].fn(payload);
+    if (out) return out;
+  }
+
+  const err = new Error(
+    "Chưa có biến môi trường AI nào trên máy chủ (GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY hoặc GROQ_API_KEY)."
+  );
+  err.statusCode = 503;
+  throw err;
 }

@@ -9,7 +9,7 @@ header h1{margin:0;font-size:20px}header small{display:block;opacity:.85;font-st
 .seg{display:flex;background:rgba(255,255,255,.15);border-radius:10px;padding:3px}.seg button{background:none;border:0;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}.seg button.on{background:#fff;color:var(--pr)}body[data-mode="dang"]{--pr:#a61b1b}#paper .hd{line-height:1.2}
 nav{display:flex;gap:4px;overflow-x:auto;background:var(--cd);border-bottom:1px solid var(--bd);padding:0 12px}nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mu);padding:12px 14px;font-weight:600;cursor:pointer;white-space:nowrap}nav button.on{color:var(--pr);border-color:var(--pr)}
 main{padding:16px;max-width:none}.tab{display:none}.tab.on{display:block}
-.grid{display:grid;grid-template-columns:minmax(360px,520px) 1fr;gap:16px}@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:minmax(400px,590px) 1fr;gap:16px}@media(max-width:860px){.grid{grid-template-columns:1fr}}
 .card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:16px}
 label{display:block;font-weight:600;margin:10px 0 4px;color:var(--mu);font-size:13px}
 input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}textarea{resize:vertical;min-height:70px}
@@ -32,7 +32,7 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 <b>Thông tin văn bản</b> <span class="tag" id="mtag"></span>
 <label>Mẫu soạn sẵn</label><div class="row"><select id="tpl"></select><button class="btn" id="usetpl">Dùng mẫu</button></div>
 <div class="row"><div><label>Loại văn bản</label><select id="type" data-k="type"></select></div><div id="f-so"><label>Số (để trống nếu chưa cấp)</label><input data-k="so" inputmode="numeric"></div></div><div id="f-qcd" style="display:none;margin:6px 0 2px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" data-k="qcDirect" style="width:auto"> Ban hành trực tiếp (có Số, Nơi nhận, Người ký)</label></div>
-<label>Ngày ban hành (dd/mm/yyyy)</label><div style="display:flex;gap:6px;align-items:center"><input id="date-dmy" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" style="flex:1"><input type="date" data-k="date" title="Chọn từ lịch" style="width:42px;padding:7px 4px;flex:none;cursor:pointer"></div>
+<label>Ngày ban hành (dd/mm/yyyy)</label><div style="display:flex;gap:6px;align-items:center"><input id="date-dmy" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" style="flex:1"><button type="button" id="date-pick-btn" class="btn" title="Chọn từ lịch" style="position:relative;overflow:hidden;padding:8px 11px;flex:none">📅<input type="date" data-k="date" tabindex="-1" aria-label="Chọn ngày từ lịch" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer"></button></div>
 <label>Trích yếu nội dung (Công văn: nhập sau “V/v”)</label><input data-k="ty">
 <div id="f-tq"><label>Thẩm quyền ban hành (QĐ, NQ khối Nhà nước; mỗi dòng một dòng in đậm)</label><textarea data-k="tq" style="min-height:60px"></textarea></div><label>Căn cứ ban hành (mỗi dòng một căn cứ)</label><textarea data-k="cc"></textarea>
 <div id="f-kg"><label>Kính gửi / Kính trình</label><input data-k="kg"></div><div id="f-dv"><label>Phòng soạn thảo (viết tắt, VD: TTTK) – tự điền vào “Lưu: VT, …” và ký hiệu Công văn</label><input data-k="dv"></div>
@@ -44,7 +44,7 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 <section class="tab" id="ra"><div class="card"><div class="bar"><button class="btn" id="pull">Lấy từ bản soạn</button><button class="btn p" id="run">Rà soát thể thức</button></div>
 <label>Dán hoặc nhập nội dung cần rà soát (căn cứ + nội dung)</label><textarea id="rs" style="min-height:200px"></textarea><div id="res" style="margin-top:12px"></div></div></section>
 
-<section class="tab" id="tra"><div class="card"><input id="q" placeholder="Tìm: ký hiệu, cỡ chữ, lề, chữ ký số, nơi nhận…"><div id="kb" style="margin-top:12px"></div></div></section>
+<section class="tab" id="tra"><div class="card"><input id="q" placeholder="Tìm: ký hiệu, cỡ chữ, lề, chữ ký số, nơi nhận…" style="margin-bottom:12px"><div id="kb" style="margin-top:12px"></div></div></section>
 <section class="tab" id="ls"><div class="card"><div id="hs"></div></div></section>
 
 <section class="tab" id="cf"><div class="card" style="max-width:640px"><b>Cấu hình đơn vị</b><p class="mu">Dùng chung cho mọi bản soạn. Lưu trong trình duyệt của bạn.</p>
@@ -383,6 +383,7 @@ $$('nav button').forEach(b=>b.onclick=()=>nav(b.dataset.t));
 $('#m-nn').onclick=()=>setMode('nn');$('#m-dang').onclick=()=>setMode('dang');
 $$('[data-k]').forEach(e=>e.oninput=()=>{S[e.dataset.k]=e.type=='checkbox'?e.checked:e.value;if(e.dataset.k=='date'){const dmy=$('#date-dmy');if(dmy)dmy.value=isoToDmy(S.date)}vis();if(e.dataset.k=='type'){if(kind()!='pt'&&!S.nn)S.nn=mkTpl(S.type).nn;sync()}if(e.dataset.k=='dv'){S.nn=S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m,(a,b)=>`${b} ${S.dv}.`);$('[data-k=nn]').value=S.nn}render()});
 const _dmy=$('#date-dmy');if(_dmy){_dmy.oninput=()=>{const v=dmyToIso(_dmy.value);if(v){S.date=v;$('[data-k=date]').value=v;render()}};_dmy.onblur=()=>{if(S.date)_dmy.value=isoToDmy(S.date)}}
+const _dpb=$('#date-pick-btn');if(_dpb){_dpb.onclick=()=>{const di=$('[data-k=date]');if(di&&di.showPicker)try{di.showPicker()}catch(e){}}}
 $('#usetpl').onclick=()=>{const k=$('#tpl').value;if(!S.dv)S.dv=C.dv;Object.assign(S,mkTpl(k));fillSel();vis();sync();render();msg('Đã áp dụng mẫu '+name(k)+'. Thay các chỗ “…” bằng nội dung thực tế.')};
 let tt;function msg(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',3500)}
 $('#save').onclick=()=>{const h=ls.g('vts-hs',[]);h.unshift({t:Date.now(),mode,S:{...S}});msg(ls.s('vts-hs',h.slice(0,50))?'Đã lưu vào lịch sử.':'Trình duyệt không cho phép lưu trữ.')};
