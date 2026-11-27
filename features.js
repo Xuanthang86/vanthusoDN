@@ -7,14 +7,15 @@
   /* ---------- CSS bổ sung ---------- */
   const css = document.createElement('style');
   css.textContent = `
-  .opt-grid{display:grid;grid-template-columns:minmax(380px,520px) 1fr;gap:16px}
-  .dg-grid{display:grid;grid-template-columns:1.2fr minmax(430px,540px);gap:16px}
-  @media(max-width:1020px){.opt-grid,.dg-grid{grid-template-columns:1fr}}
+  .opt-grid{display:grid;grid-template-columns:minmax(320px,520px) minmax(0,1fr);gap:16px}.opt-grid>*{min-width:0;max-width:100%}
+  .dg-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,540px);gap:16px}.dg-grid>*{min-width:0;max-width:100%}
+  @media(max-width:1020px){.opt-grid,.dg-grid{grid-template-columns:minmax(0,1fr)}}
   .dg-grid .chips{gap:6px;margin:6px 0 8px}
   .dg-grid .chip{padding:5px 10px;font-size:12.5px}
   .dg-grid .kpi-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .dg-grid .kpi .mu{white-space:nowrap;font-size:12.5px}
   .mar-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  @media(max-width:560px){.dg-grid .kpi-row{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.dg-grid .kpi .mu{white-space:normal}.mar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .mar-grid span{display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
   .mar-grid input{padding:6px 7px;text-align:center}
   .ai-conn-bar{margin-top:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--cd);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px}
@@ -22,9 +23,10 @@
   .drop{border:2px dashed var(--bd);border-radius:12px;padding:22px 16px;text-align:center;background:var(--bg);cursor:pointer;transition:.15s border-color,.15s background}
   .drop.ov{border-color:var(--pr);background:rgba(30,58,138,.08)}
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
-  .kpi{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+  .kpi{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;min-width:0;word-break:break-word}
   .kpi b{font-size:16px;display:block}
-  .tbl-cmp{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;margin:10px 0}
+  .tbl-cmp{width:100%;border-collapse:collapse;font-size:13px;margin:0}
   .tbl-cmp th,.tbl-cmp td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}
   .tbl-cmp th{background:var(--bg);color:var(--mu)}
   .stars{display:flex;gap:6px;align-items:center;margin:8px 0}
@@ -113,7 +115,7 @@
     bar.className = 'prof-bar';
     bar.id = 'soan-prof-bar';
     bar.innerHTML = `<span class="mu" style="font-size:12px;font-weight:600">Hồ sơ cá nhân:</span>
-      <select id="soan-prof-sel" style="width:auto;flex:1;min-width:140px;padding:6px 8px"></select>
+      <select id="soan-prof-sel" style="width:auto;flex:1;min-width:120px;max-width:100%;padding:6px 8px"></select>
       <button type="button" class="btn" id="soan-prof-apply" style="padding:6px 10px;font-size:12px">Áp dụng định dạng</button>
       <button type="button" class="btn" id="soan-prof-go" style="padding:6px 10px;font-size:12px">Tối ưu file</button>`;
     const firstLabel = [...card.children].find(el => el.tagName === 'LABEL');
@@ -431,6 +433,9 @@
       throw new Error('Chỉ hỗ trợ file .docx (Word) hoặc .pdf (PDF).');
     }
     if (ext === 'docx') {
+      if (typeof JSZip === 'undefined' && window._vtsLoadExt) {
+        await window._vtsLoadExt('JSZip', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+      }
       if (typeof JSZip === 'undefined') throw new Error('Chưa tải được JSZip để đọc file .docx.');
       const zip = await JSZip.loadAsync(file);
       const docFile = zip.file('word/document.xml');
@@ -513,6 +518,9 @@
       }, file.name);
     }
 
+    if (typeof pdfjsLib === 'undefined' && window._vtsLoadExt) {
+      await window._vtsLoadExt('pdfjsLib', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    }
     if (typeof pdfjsLib === 'undefined') {
       throw new Error('Chưa tải được thư viện đọc PDF (pdf.js). Hãy kiểm tra kết nối mạng và thử lại.');
     }
@@ -663,7 +671,7 @@
         <div class="kpi"><span class="mu">Loại văn bản</span><b>${esc(typeObj[1])} (${esc(a.detectedType)})</b></div>
         <div class="kpi"><span class="mu">Số lỗi/lệch chuẩn</span><b>${a.issues.length} mục</b></div>
       </div>
-      <table class="tbl-cmp">
+      <div class="tbl-wrap"><table class="tbl-cmp">
         <thead><tr><th>Tiêu chí thể thức</th><th>File gốc tải lên</th><th>Tối ưu theo chuẩn & cá nhân</th></tr></thead>
         <tbody>
           <tr><td>Phông chữ</td><td>${esc(m.fontFamily || `Chưa rõ (${m.format || 'PDF'})`)}</td><td>Times New Roman</td></tr>
@@ -672,11 +680,11 @@
           <tr><td>Lề A4 (Trên/Dưới/Trái/Phải)</td><td>${m.marginsMm ? `${m.marginsMm.top}/${m.marginsMm.bottom}/${m.marginsMm.left}/${m.marginsMm.right} mm` : 'Chưa rõ'}</td><td>${eff.marginsMm.top}/${eff.marginsMm.bottom}/${eff.marginsMm.left}/${eff.marginsMm.right} mm</td></tr>
           <tr><td>Trích yếu nhận diện</td><td colspan="2">${esc(a.draft.ty || '(Chưa nhận diện)')}</td></tr>
         </tbody>
-      </table>
+      </table></div>
       ${a.issues.length ? a.issues.map(i => `<div class="it wa">${esc(i)}</div>`).join('') : '<div class="it ok">Cấu trúc và thông số cơ bản phù hợp thể thức quy định.</div>'}
       <div class="bar" style="margin-top:12px;align-items:center">
         <button type="button" class="btn p" id="opt-to-editor">Tối ưu & Nạp vào Soạn thảo</button>
-        <select id="opt-ai-provider" style="width:auto;min-width:170px;padding:7px 8px" title="Chọn công cụ AI"></select>
+        <select id="opt-ai-provider" style="width:auto;min-width:160px;max-width:100%;padding:7px 8px" title="Chọn công cụ AI"></select>
         <button type="button" class="btn" id="opt-ai-polish" style="border-color:var(--pr);color:var(--pr)">✨ AI biên tập câu từ & nạp Soạn thảo</button>
         <button type="button" class="btn" id="opt-dl-docx">Xuất ngay Word (.docx) đã tối ưu</button>
         <button type="button" class="btn" id="opt-learn">Học thói quen file vào hồ sơ cá nhân</button>
@@ -1231,6 +1239,9 @@
   }
 
   async function ensurePuterToolConnected(id) {
+    if (!hasPuter() && window._vtsLoadExt) {
+      try { await window._vtsLoadExt('puter', 'https://js.puter.com/v2/'); } catch (_) {}
+    }
     if (!hasPuter()) {
       throw new Error('Không tải được trình kết nối AI (js.puter.com). Hãy kiểm tra kết nối mạng hoặc tắt trình chặn script.');
     }
@@ -1488,6 +1499,11 @@
     populateProviderSelect(q('#ai-provider'));
     renderAiConnections();
     detectAiProviders();
+    window.addEventListener('vts-puter-ready', () => {
+      populateProviderSelect(q('#ai-provider'));
+      populateProviderSelect(q('#opt-ai-provider'));
+      renderAiConnections();
+    });
 
     let lastAiResult = null;
     const runBtn = q('#ai-run');
@@ -1532,7 +1548,7 @@
         outEl.className = 'ai-out';
         outEl.style.display = 'block';
         outEl.innerHTML = `
-          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
             <b>Đề xuất đã biên tập</b>
             <span class="tag">${esc(res.provider || 'AI Tự động')}</span>
           </div>
