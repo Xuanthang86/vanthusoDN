@@ -134,7 +134,7 @@
       if (p.deptAbbr) S.dv = p.deptAbbr;
       if (p.deptFull) S.dvn = p.deptFull;
       if (S.dv && S.nn) {
-        S.nn = S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m, (_, b) => `${b} ${S.dv}.`);
+        S.nn = S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m, (_, b) => `${b} ${S.dv}.${C.drafter ? ' ' + C.drafter : ''}`);
       }
     }
     if (p.defaultSignerRole && !S.cv) S.cv = p.defaultSignerRole;
