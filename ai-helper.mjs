@@ -19,6 +19,7 @@ function getGeminiClient() {
 
 export function getAvailableAiProviders() {
   return {
+    free_auto: true,
     gemini: Boolean(process.env.GEMINI_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
     claude: Boolean(process.env.ANTHROPIC_API_KEY),
@@ -246,6 +247,38 @@ async function callGroq({ systemInstruction, contents }) {
   return normalizeOut(extractJson(data?.choices?.[0]?.message?.content || ""), "Groq (Llama 3.3)");
 }
 
+async function callPollinationsFree({ systemInstruction, contents }) {
+  const resp = await fetch("https://text.pollinations.ai/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "openai",
+      private: true,
+      jsonMode: true,
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: contents },
+      ],
+    }),
+  });
+  const txt = await resp.text();
+  if (!resp.ok) {
+    let msg = `AI miễn phí đang tạm bận (${resp.status}).`;
+    try {
+      const parsed = JSON.parse(txt);
+      if (parsed?.error?.code === "FREE_LIMIT") {
+        msg = "AI tự động đang tạm giới hạn lượt liên tiếp theo IP (đợi khoảng 45 giây hoặc kết nối ChatGPT/Gemini/Claude ngay trên trang).";
+      } else if (parsed?.error?.message) {
+        msg = parsed.error.message;
+      }
+    } catch (_) {}
+    const err = new Error(msg);
+    err.statusCode = resp.status === 402 ? 429 : resp.status;
+    throw err;
+  }
+  return normalizeOut(extractJson(txt), "AI Tự động (Miễn phí)");
+}
+
 export async function polishDocumentWithAI(input) {
   const payload = buildPolishPromptPayload(input);
   const choice = input.provider || "auto";
@@ -255,6 +288,7 @@ export async function polishDocumentWithAI(input) {
     openai: { fn: callOpenAI, envName: "OPENAI_API_KEY", label: "ChatGPT (OpenAI)" },
     claude: { fn: callClaude, envName: "ANTHROPIC_API_KEY", label: "Claude (Anthropic)" },
     groq: { fn: callGroq, envName: "GROQ_API_KEY", label: "Groq" },
+    free_auto: { fn: callPollinationsFree, envName: "", label: "AI Tự động" },
   };
 
   if (choice !== "auto") {
@@ -271,21 +305,19 @@ export async function polishDocumentWithAI(input) {
     }
     const out = await target.fn(payload);
     if (!out) {
-      const err = new Error(`Máy chủ chưa cấu hình ${target.envName} cho ${target.label}. Hãy thêm biến ${target.envName} trong Settings > Secrets.`);
+      const err = new Error(`Máy chủ chưa cấu hình ${target.envName} cho ${target.label}. Hãy kết nối ${target.label} trực tiếp trên trang hoặc chọn AI Tự động.`);
       err.statusCode = 503;
       throw err;
     }
     return out;
   }
 
-  for (const key of ["gemini", "openai", "claude", "groq"]) {
+  for (const key of ["gemini", "openai", "claude", "groq", "free_auto"]) {
     const out = await runners[key].fn(payload);
     if (out) return out;
   }
 
-  const err = new Error(
-    "Chưa có biến môi trường AI nào trên máy chủ (GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY hoặc GROQ_API_KEY)."
-  );
+  const err = new Error("Không thể kết nối AI tự động lúc này. Hãy thử kết nối công cụ AI trực tiếp trên trang.");
   err.statusCode = 503;
   throw err;
 }

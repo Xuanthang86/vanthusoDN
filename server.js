@@ -103,7 +103,7 @@ app.post('/api/ai/polish', async (req, res) => {
       docTypeName: typeof b.docTypeName === 'string' ? b.docTypeName.slice(0, 80) : 'Kế hoạch',
       orgName: typeof b.orgName === 'string' ? b.orgName.slice(0, 200) : '',
       editStyle: ['polish', 'draft', 'concise'].includes(b.editStyle) ? b.editStyle : 'polish',
-      provider: ['auto', 'gemini', 'openai', 'claude', 'groq', 'workers_ai'].includes(b.provider) ? b.provider : 'auto',
+      provider: ['auto', 'free_auto', 'gemini', 'openai', 'claude', 'groq', 'workers_ai'].includes(b.provider) ? b.provider : 'auto',
       rawInfo,
       currentDraft
     });

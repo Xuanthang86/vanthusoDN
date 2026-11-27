@@ -17,9 +17,15 @@
   .mar-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .mar-grid span{display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
   .mar-grid input{padding:6px 7px;text-align:center}
-  .ai-ext{border-top:1px dashed var(--bd);margin-top:10px;padding-top:10px}
-  .ai-ext-links{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-  .ai-ext-links a{text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;padding:6px 10px}
+  .ai-conn-wrap{border-top:1px dashed var(--bd);margin-top:10px;padding-top:10px}
+  .ai-conn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px}
+  .ai-conn-card{background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+  .ai-conn-card.act{border-color:var(--pr);box-shadow:0 0 0 1px var(--pr)}
+  .ai-conn-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .ai-conn-st{font-size:11px;font-weight:600;color:var(--mu)}
+  .ai-conn-st.ok{color:var(--ok)}
+  .ai-conn-btns{display:flex;gap:6px}
+  .ai-conn-btns button{flex:1;padding:4px 8px;font-size:12px}
   .drop{border:2px dashed var(--bd);border-radius:12px;padding:22px 16px;text-align:center;background:var(--bg);cursor:pointer;transition:.15s border-color,.15s background}
   .drop.ov{border-color:var(--pr);background:rgba(30,58,138,.08)}
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
@@ -812,6 +818,9 @@
           rawInfo: '',
           currentDraft: { ty: d.ty || '', cc: d.cc || '', nd: d.nd || '' }
         });
+        populateProviderSelect(q('#ai-provider'));
+        populateProviderSelect(q('#opt-ai-provider'));
+        renderAiConnections();
         Object.assign(S, d);
         if (res.ty) S.ty = res.ty;
         if (res.cc && res.cc.length) S.cc = res.cc.join('\n');
@@ -821,7 +830,7 @@
         vis();
         render();
         nav('soan');
-        msg('AI (' + (res.provider || 'Miễn phí') + ') đã biên tập mượt mà & nạp vào Soạn thảo.');
+        msg('AI (' + (res.provider || 'AI Tự động') + ') đã biên tập mượt mà & nạp vào Soạn thảo.');
       } catch (e) {
         if (errBox) errBox.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối AI.')}</div>`;
         msg(e.message || 'Không thể xử lý AI.');
@@ -1106,31 +1115,148 @@
   /* ========================================================================
    * PHẦN 4: TRỢ LÝ AI BIÊN TẬP & HOÀN THIỆN NỘI DUNG VĂN BẢN (ĐA CÔNG CỤ AI)
    * ======================================================================== */
+  const AI_CONNS_KEY = 'vts-ai-conns-v1';
   const AI_PROVIDERS = [
-    ['auto', 'Tự động (ưu tiên AI sẵn có)'],
-    ['gemini', 'Google Gemini'],
-    ['openai', 'ChatGPT (OpenAI)'],
-    ['claude', 'Claude (Anthropic)'],
-    ['groq', 'Groq (Llama 3.3)'],
-    ['workers_ai', 'Cloudflare Workers AI']
+    { id: 'auto', label: 'AI Tự động (ưu tiên sẵn có)', builtIn: true },
+    { id: 'openai', label: 'ChatGPT (OpenAI)', match: /^(?:openai\/)?gpt-4o|^openai\/gpt-4\.1|^gpt-4\.1/i, fallbacks: ['gpt-4o-mini', 'openai/gpt-4o'] },
+    { id: 'gemini', label: 'Google Gemini', match: /gemini-2\.5-flash|gemini-2\.0-flash|gemini/i, fallbacks: ['google/gemini-2.5-flash', 'gemini-2.0-flash'] },
+    { id: 'claude', label: 'Claude (Anthropic)', match: /claude.*sonnet|claude.*haiku|claude/i, fallbacks: ['claude-sonnet-4', 'anthropic/claude-3-7-sonnet'] },
+    { id: 'deepseek', label: 'DeepSeek', match: /deepseek-chat|deepseek/i, fallbacks: ['deepseek-chat', 'deepseek/deepseek-chat'] },
+    { id: 'grok', label: 'Grok (xAI)', match: /grok-3|grok/i, fallbacks: ['x-ai/grok-3-mini', 'grok-beta'] },
+    { id: 'groq', label: 'Groq (Llama 3.3)', serverOnly: true },
+    { id: 'workers_ai', label: 'Cloudflare Workers AI', serverOnly: true }
   ];
-  let availableProviders = {};
+
+  let availableProviders = { free_auto: true };
+  let aiConns = ls.g(AI_CONNS_KEY, {});
   let selectedAiProvider = ls.g('vts-ai-prov', 'auto');
+  let cachedPuterModels = null;
+
+  const hasPuter = () => typeof window.puter !== 'undefined' && window.puter && window.puter.auth && window.puter.ai;
+  const isPuterSignedIn = () => {
+    try { return hasPuter() && Boolean(window.puter.auth.isSignedIn()); } catch (_) { return false; }
+  };
+  const isToolConnected = id => {
+    if (id === 'auto' || id === 'free_auto') return true;
+    if (availableProviders[id]) return true;
+    return Boolean(aiConns[id]) && isPuterSignedIn();
+  };
 
   function populateProviderSelect(sel) {
     if (!sel) return;
-    sel.innerHTML = AI_PROVIDERS.map(([id, label]) => {
-      const tag = id === 'auto'
-        ? ''
-        : (availableProviders[id] ? ' ✓' : (Object.keys(availableProviders).length ? ' (chưa cấu hình)' : ''));
-      return `<option value="${id}">${esc(label + tag)}</option>`;
-    }).join('');
-    sel.value = AI_PROVIDERS.some(x => x[0] === selectedAiProvider) ? selectedAiProvider : 'auto';
+    sel.innerHTML = AI_PROVIDERS
+      .filter(p => !p.serverOnly || availableProviders[p.id])
+      .map(p => {
+        const tag = p.id === 'auto'
+          ? ' ✓'
+          : (availableProviders[p.id]
+            ? ' ✓ (Máy chủ)'
+            : (isToolConnected(p.id) ? ' ✓ (Đã kết nối)' : ' (Chưa kết nối)'));
+        return `<option value="${p.id}">${esc(p.label + tag)}</option>`;
+      }).join('');
+    sel.value = AI_PROVIDERS.some(x => x.id === selectedAiProvider && (!x.serverOnly || availableProviders[x.id]))
+      ? selectedAiProvider
+      : 'auto';
     sel.onchange = () => {
       selectedAiProvider = sel.value;
       ls.s('vts-ai-prov', selectedAiProvider);
       qa('#ai-provider, #opt-ai-provider').forEach(o => { if (o !== sel) o.value = selectedAiProvider; });
+      renderAiConnections();
     };
+  }
+
+  function renderAiConnections() {
+    const host = q('#ai-conns-list');
+    if (!host) return;
+    const signed = isPuterSignedIn();
+    const cards = AI_PROVIDERS.filter(p => !p.builtIn && !p.serverOnly).map(p => {
+      const onServer = Boolean(availableProviders[p.id]);
+      const connected = onServer || (Boolean(aiConns[p.id]) && signed);
+      const isSelected = selectedAiProvider === p.id;
+      const stText = onServer
+        ? 'Sẵn sàng (Máy chủ)'
+        : (connected ? 'Đã kết nối ✓' : (aiConns[p.id] && !signed ? 'Cần đăng nhập lại' : 'Chưa kết nối'));
+      return `
+        <div class="ai-conn-card${isSelected ? ' act' : ''}">
+          <div class="ai-conn-top">
+            <b>${esc(p.label)}</b>
+            <span class="ai-conn-st${connected ? ' ok' : ''}">${esc(stText)}</span>
+          </div>
+          <div class="ai-conn-btns">
+            ${connected
+              ? `<button type="button" class="btn${isSelected ? ' p' : ''}" data-ai-use="${p.id}">${isSelected ? 'Đang chọn' : 'Chọn dùng'}</button>
+                 ${!onServer ? `<button type="button" class="btn" data-ai-disc="${p.id}">Ngắt</button>` : ''}`
+              : `<button type="button" class="btn p" data-ai-conn="${p.id}">Kết nối</button>`
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+    host.innerHTML = cards;
+
+    qa('[data-ai-conn]').forEach(b => {
+      b.onclick = async () => {
+        const id = b.dataset.aiConn;
+        b.disabled = true;
+        try {
+          await ensurePuterToolConnected(id);
+          selectedAiProvider = id;
+          ls.s('vts-ai-prov', id);
+          populateProviderSelect(q('#ai-provider'));
+          populateProviderSelect(q('#opt-ai-provider'));
+          renderAiConnections();
+          const tool = AI_PROVIDERS.find(x => x.id === id);
+          msg(`Đã kết nối ${tool ? tool.label : id} để sử dụng trực tiếp cho lần này và các lần sau.`);
+        } catch (e) {
+          msg(e.message || 'Chưa hoàn tất kết nối công cụ AI.');
+        } finally {
+          b.disabled = false;
+        }
+      };
+    });
+
+    qa('[data-ai-use]').forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.aiUse;
+        selectedAiProvider = id;
+        ls.s('vts-ai-prov', id);
+        populateProviderSelect(q('#ai-provider'));
+        populateProviderSelect(q('#opt-ai-provider'));
+        renderAiConnections();
+        const tool = AI_PROVIDERS.find(x => x.id === id);
+        msg(`Đã chọn sử dụng ${tool ? tool.label : id}.`);
+      };
+    });
+
+    qa('[data-ai-disc]').forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.aiDisc;
+        delete aiConns[id];
+        ls.s(AI_CONNS_KEY, aiConns);
+        if (selectedAiProvider === id) {
+          selectedAiProvider = 'auto';
+          ls.s('vts-ai-prov', 'auto');
+        }
+        populateProviderSelect(q('#ai-provider'));
+        populateProviderSelect(q('#opt-ai-provider'));
+        renderAiConnections();
+        msg('Đã ngắt kết nối công cụ AI khỏi danh sách sử dụng.');
+      };
+    });
+  }
+
+  async function ensurePuterToolConnected(id) {
+    if (!hasPuter()) {
+      throw new Error('Không tải được trình kết nối AI (js.puter.com). Hãy kiểm tra kết nối mạng hoặc tắt trình chặn script.');
+    }
+    if (!isPuterSignedIn()) {
+      await window.puter.auth.signIn();
+    }
+    if (!isPuterSignedIn()) {
+      throw new Error('Bạn chưa hoàn tất đăng nhập kết nối AI.');
+    }
+    aiConns[id] = true;
+    ls.s(AI_CONNS_KEY, aiConns);
   }
 
   async function detectAiProviders() {
@@ -1143,81 +1269,192 @@
           availableProviders = d.providers;
           populateProviderSelect(q('#ai-provider'));
           populateProviderSelect(q('#opt-ai-provider'));
+          renderAiConnections();
         }
       }
     } catch (_) {}
   }
 
-  async function callAiPolish(payload) {
-    const resp = await fetch('/api/ai/polish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const ct = resp.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) {
-      throw new Error('Máy chủ không trả về JSON cho /api/ai/polish (mã ' + resp.status + '). Hãy kiểm tra thư mục functions/api/ai/polish.js trên Cloudflare Pages (Build output directory phải là "/" để kích hoạt Functions).');
-    }
-    const data = await resp.json();
-    if (!resp.ok) {
-      throw new Error(data.error || ('Lỗi máy chủ AI (' + resp.status + ').'));
-    }
-    return data;
-  }
+  function buildClientPrompts({ mode = 'nn', docType = 'KH', docTypeName = 'Kế hoạch', orgName = '', editStyle = 'polish', rawInfo = '', currentDraft = {} }) {
+    const isState = mode !== 'dang';
+    const styleDesc =
+      editStyle === 'draft'
+        ? 'Chuyển hóa các ghi chú thô / thông tin gốc thành văn bản hành chính hoàn chỉnh, chia mục hợp lý theo loại văn bản.'
+        : editStyle === 'concise'
+          ? 'Rút gọn câu từ thật cô đọng, súc tích, bỏ hoàn toàn từ ngữ rườm rà và ý trùng lặp nhưng vẫn giữ đủ nội dung chính.'
+          : 'Biên tập lại câu từ cho suôn mượt, mạch lạc, chuẩn văn phong hành chính, gộp và loại bỏ mọi câu/ý bị lặp lại.';
 
-  function buildPersonalAiPrompt() {
-    const rawInfo = (q('#ai-raw')?.value || '').trim();
-    const editStyle = q('#ai-style')?.value || 'polish';
-    const std = mode === 'dang' ? 'Hướng dẫn 05-HD/VPTW (Khối Đảng)' : 'Nghị định 30/2020/NĐ-CP (Khối Chính quyền)';
-    const styleNote = editStyle === 'draft'
-      ? 'Hãy soạn thảo hoàn chỉnh thành văn bản hành chính chuẩn mực từ ghi chú thô.'
-      : editStyle === 'concise'
-        ? 'Hãy biên tập lại ngắn gọn, cô đọng, súc tích hơn và loại bỏ ý lặp.'
-        : 'Hãy biên tập lại câu từ hành chính mượt mà, chặt chẽ, loại bỏ ý trùng lặp.';
-    return [
-      `Bạn là chuyên gia văn thư hành chính Việt Nam. ${styleNote}`,
-      `Chuẩn thể thức: ${std}.`,
-      `Cơ quan ban hành: ${(mode === 'dang' ? C.dO : C.nO) || 'Trung tâm Đổi mới sáng tạo'}.`,
-      `Loại văn bản: ${name(S.type)} (${S.type}).`,
-      rawInfo ? `\nThông tin gốc / ghi chú:\n${rawInfo}` : '',
-      S.ty ? `\nTrích yếu hiện tại:\n${S.ty}` : '',
-      S.cc ? `\nCăn cứ hiện tại:\n${S.cc}` : '',
-      S.nd ? `\nNội dung nháp hiện tại:\n${S.nd}` : '',
-      `\nHãy trả về đúng định dạng sau (không thêm lời giải thích thừa):`,
-      `Trích yếu: <trích yếu ngắn gọn>`,
-      `Căn cứ:\n<mỗi dòng một căn cứ, nếu có>`,
-      `Nội dung:\n<toàn bộ phần nội dung đã hoàn thiện, giữ nguyên cấu trúc Điều/khoản/mục nếu có>`
+    const systemInstruction = [
+      'Bạn là chuyên gia văn thư - lưu trữ hành chính Việt Nam, am hiểu sâu Nghị định 30/2020/NĐ-CP (Khối Chính quyền) và Hướng dẫn 05-HD/VPTW (Khối Đảng).',
+      `Chế độ hiện tại: ${isState ? "Khối Chính quyền (NĐ 30/2020/NĐ-CP) - BẮT BUỘC viết 'Ủy'/'ủy'." : "Khối Đảng (HD 05-HD/VPTW) - BẮT BUỘC viết 'Uỷ'/'uỷ', trích yếu viết thường chữ cái đầu."}`,
+      `Loại văn bản đang soạn: ${docTypeName} (mã ${docType}).`,
+      orgName ? `Cơ quan ban hành: ${orgName}.` : '',
+      `Yêu cầu biên tập: ${styleDesc}`,
+      'Nguyên tắc: văn phong hành chính công vụ Việt Nam, câu từ suôn mượt, gọn gàng, không lặp nội dung; giữ nguyên số liệu/ngày tháng/tên riêng gốc; không đưa Quốc hiệu/Số/Nơi nhận/Chữ ký vào phần nd; kết thúc nd bằng ./.',
+      'Trả về duy nhất JSON hợp lệ gồm 4 khóa: ty (string), cc (string[]), nd (string), summary (string).'
     ].filter(Boolean).join('\n');
+
+    const parts = [];
+    if (rawInfo && rawInfo.trim()) parts.push('=== THÔNG TIN GỐC ===\n' + rawInfo.trim());
+    if (currentDraft && (currentDraft.ty || currentDraft.cc || currentDraft.nd)) {
+      parts.push(
+        '=== BẢN NHÁP HIỆN CÓ ===\n' +
+          (currentDraft.ty ? `Trích yếu: ${currentDraft.ty}\n` : '') +
+          (currentDraft.cc ? `Căn cứ:\n${currentDraft.cc}\n` : '') +
+          (currentDraft.nd ? `Nội dung:\n${currentDraft.nd}` : '')
+      );
+    }
+    if (!parts.length) parts.push(`Hãy gợi ý nội dung mẫu hoàn chỉnh cho loại văn bản ${docTypeName}.`);
+
+    return { systemInstruction, contents: parts.join('\n\n') };
   }
 
-  function parseExternalAiText(text) {
-    const t = String(text || '').trim();
-    if (!t) return null;
-    const jsonMatch = t.match(/\{[\s\S]*"nd"[\s\S]*\}/);
-    if (jsonMatch) {
+  function parseAiRawOutput(raw, providerLabel) {
+    let text = '';
+    if (typeof raw === 'string') text = raw;
+    else if (raw && raw.message && typeof raw.message.content === 'string') text = raw.message.content;
+    else if (raw && raw.message && Array.isArray(raw.message.content)) {
+      text = raw.message.content.map(x => (typeof x === 'string' ? x : (x?.text || ''))).join('');
+    } else if (raw && typeof raw.text === 'string') text = raw.text;
+    else text = String(raw || '');
+
+    const s = text.trim();
+    const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const candidate = (fenced ? fenced[1] : s).trim();
+    const jsonSlice = candidate.match(/\{[\s\S]*\}/);
+    if (jsonSlice) {
       try {
-        const obj = JSON.parse(jsonMatch[0]);
-        return {
-          ty: typeof obj.ty === 'string' ? obj.ty.trim() : '',
-          cc: Array.isArray(obj.cc) ? obj.cc.map(x => String(x).trim()).filter(Boolean) : [],
-          nd: typeof obj.nd === 'string' ? obj.nd.trim() : ''
-        };
+        const obj = JSON.parse(jsonSlice[0]);
+        if (obj && (typeof obj.nd === 'string' || typeof obj.ty === 'string')) {
+          return {
+            ty: String(obj.ty || '').trim(),
+            cc: Array.isArray(obj.cc) ? obj.cc.map(x => String(x).trim()).filter(Boolean) : [],
+            nd: String(obj.nd || '').trim(),
+            summary: String(obj.summary || '').trim(),
+            provider: providerLabel
+          };
+        }
       } catch (_) {}
     }
-    let ty = '', cc = [], nd = '';
-    const tyM = t.match(/(?:^|\n)\s*(?:Trích yếu|V\/v)\s*:\s*(.+)/i);
+    let ty = '', cc = [], nd = s;
+    const tyM = s.match(/(?:^|\n)\s*(?:Trích yếu|V\/v)\s*:\s*(.+)/i);
     if (tyM) ty = tyM[1].trim();
-    const ndIdx = t.search(/(?:^|\n)\s*Nội dung(?:\s+văn bản)?\s*:/i);
-    const ccIdx = t.search(/(?:^|\n)\s*Căn cứ(?:\s+ban hành)?\s*:/i);
+    const ndIdx = s.search(/(?:^|\n)\s*Nội dung(?:\s+văn bản)?\s*:/i);
+    const ccIdx = s.search(/(?:^|\n)\s*Căn cứ(?:\s+ban hành)?\s*:/i);
     if (ndIdx >= 0) {
-      nd = t.slice(ndIdx).replace(/^\s*Nội dung(?:\s+văn bản)?\s*:\s*/i, '').trim();
+      nd = s.slice(ndIdx).replace(/^\s*Nội dung(?:\s+văn bản)?\s*:\s*/i, '').trim();
       if (ccIdx >= 0 && ccIdx < ndIdx) {
-        cc = t.slice(ccIdx, ndIdx).replace(/^\s*Căn cứ(?:\s+ban hành)?\s*:\s*/i, '').split('\n').map(x => x.trim()).filter(Boolean);
+        cc = s.slice(ccIdx, ndIdx).replace(/^\s*Căn cứ(?:\s+ban hành)?\s*:\s*/i, '').split('\n').map(x => x.trim()).filter(Boolean);
       }
-    } else {
-      nd = t;
     }
-    return { ty, cc, nd };
+    return { ty, cc, nd, summary: '', provider: providerLabel };
+  }
+
+  async function resolvePuterModelCandidates(providerId) {
+    const tool = AI_PROVIDERS.find(x => x.id === providerId);
+    const fallbacks = tool?.fallbacks || ['gpt-4o-mini'];
+    try {
+      if (!cachedPuterModels && window.puter.ai.listModels) {
+        const list = await window.puter.ai.listModels();
+        if (Array.isArray(list)) {
+          cachedPuterModels = list.map(m => (typeof m === 'string' ? m : (m?.id || m?.name || ''))).filter(Boolean);
+        }
+      }
+      if (cachedPuterModels && tool?.match) {
+        const matched = cachedPuterModels.filter(m => tool.match.test(m)).slice(0, 3);
+        if (matched.length) return [...new Set([...matched, ...fallbacks])];
+      }
+    } catch (_) {}
+    return fallbacks;
+  }
+
+  async function callPuterAi(providerId, payload) {
+    await ensurePuterToolConnected(providerId);
+    const { systemInstruction, contents } = buildClientPrompts(payload);
+    const models = await resolvePuterModelCandidates(providerId);
+    const tool = AI_PROVIDERS.find(x => x.id === providerId);
+    let lastErr = null;
+    for (const model of models) {
+      try {
+        const resp = await window.puter.ai.chat(
+          [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: contents }
+          ],
+          { model }
+        );
+        return parseAiRawOutput(resp, `${tool ? tool.label : providerId} (${model})`);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw new Error(lastErr?.message || `Không thể gọi ${tool ? tool.label : providerId} lúc này.`);
+  }
+
+  async function callPollinationsBrowser(payload) {
+    const { systemInstruction, contents } = buildClientPrompts(payload);
+    const resp = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'openai',
+        private: true,
+        jsonMode: true,
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: contents }
+        ]
+      })
+    });
+    const txt = await resp.text();
+    if (!resp.ok) {
+      let errMsg = `AI tự động đang tạm bận (${resp.status}).`;
+      try {
+        const d = JSON.parse(txt);
+        if (d?.error?.code === 'FREE_LIMIT') {
+          errMsg = 'AI tự động đang giới hạn 1 lượt mỗi 45 giây. Bạn có thể đợi vài giây hoặc kết nối ChatGPT / Google Gemini / Claude ngay bên dưới để dùng liên tục.';
+        } else if (d?.error?.message) errMsg = d.error.message;
+      } catch (_) {}
+      throw new Error(errMsg);
+    }
+    return parseAiRawOutput(txt, 'AI Tự động');
+  }
+
+  async function callAiPolish(payload) {
+    const provider = payload.provider || 'auto';
+    const isBrowserPuterTool = ['openai', 'gemini', 'claude', 'deepseek', 'grok'].includes(provider);
+
+    if (isBrowserPuterTool && !availableProviders[provider]) {
+      return callPuterAi(provider, payload);
+    }
+
+    try {
+      const resp = await fetch('/api/ai/polish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const ct = resp.headers.get('content-type') || '';
+      if (resp.ok && ct.includes('application/json')) {
+        return await resp.json();
+      }
+      const errData = ct.includes('application/json') ? await resp.json().catch(() => null) : null;
+      if (provider !== 'auto' && provider !== 'free_auto') {
+        throw new Error(errData?.error || ('Lỗi máy chủ AI (' + resp.status + ').'));
+      }
+    } catch (err) {
+      if (provider !== 'auto' && provider !== 'free_auto') throw err;
+    }
+
+    try {
+      return await callPollinationsBrowser(payload);
+    } catch (browserErr) {
+      const connectedTool = AI_PROVIDERS.find(p => !p.builtIn && !p.serverOnly && isToolConnected(p.id));
+      if (connectedTool) {
+        return callPuterAi(connectedTool.id, payload);
+      }
+      throw browserErr;
+    }
   }
 
   (function mountAiBoxInEditor() {
@@ -1237,7 +1474,7 @@
         <textarea id="ai-raw" style="min-height:86px" placeholder="VD: Họp giao ban tuần tới sáng thứ Hai lúc 8h tại phòng họp số 2, đánh giá tiến độ chuyển đổi số quý II, các phòng báo cáo kết quả, hoàn thành trước 15/5..."></textarea>
         <div class="row" style="margin-top:6px">
           <div>
-            <label style="margin-top:4px">Công cụ AI máy chủ</label>
+            <label style="margin-top:4px">Công cụ AI sử dụng</label>
             <select id="ai-provider"></select>
           </div>
           <div>
@@ -1255,21 +1492,10 @@
         <div id="ai-err"></div>
         <div id="ai-out" style="display:none"></div>
 
-        <div class="ai-ext">
-          <b style="font-size:12.5px">Hoặc kết nối trực tiếp bằng tài khoản AI của bạn (không cần API Key máy chủ)</b>
-          <p class="mu" style="margin:3px 0 6px;font-size:12px">Bước 1: Sao chép yêu cầu &amp; nội dung → Bước 2: Chọn công cụ AI của bạn để mở và dán → Bước 3: Dán kết quả vào ô dưới.</p>
-          <div class="ai-ext-links">
-            <button type="button" class="btn" id="ai-copy-prompt">📋 Sao chép yêu cầu &amp; nội dung</button>
-            <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT ↗</a>
-            <a class="btn" href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Google Gemini ↗</a>
-            <a class="btn" href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude ↗</a>
-            <a class="btn" href="https://copilot.microsoft.com/" target="_blank" rel="noopener noreferrer">Copilot ↗</a>
-            <a class="btn" href="https://grok.com/" target="_blank" rel="noopener noreferrer">Grok ↗</a>
-          </div>
-          <textarea id="ai-paste" style="min-height:70px;margin-top:6px" placeholder="Dán kết quả từ ChatGPT / Gemini / Claude vào đây rồi bấm Áp dụng..."></textarea>
-          <div class="bar" style="margin:6px 0 0">
-            <button type="button" class="btn p" id="ai-paste-apply">📥 Áp dụng kết quả đã dán</button>
-          </div>
+        <div class="ai-conn-wrap">
+          <b style="font-size:12.5px">Kết nối &amp; chọn công cụ AI trực tiếp trên website</b>
+          <p class="mu" style="margin:3px 0 0;font-size:12px">Bạn có thể kết nối một hoặc nhiều công cụ AI để lưu dùng cho các lần sau và thay đổi lựa chọn bất kỳ lúc nào trước khi biên tập.</p>
+          <div id="ai-conns-list" class="ai-conn-grid"></div>
         </div>
       </div>
     `;
@@ -1277,44 +1503,13 @@
     else card.appendChild(box);
 
     populateProviderSelect(q('#ai-provider'));
+    renderAiConnections();
     detectAiProviders();
 
     let lastAiResult = null;
     const runBtn = q('#ai-run');
     const errEl = q('#ai-err');
     const outEl = q('#ai-out');
-
-    const copyPromptBtn = q('#ai-copy-prompt');
-    if (copyPromptBtn) copyPromptBtn.onclick = async () => {
-      const promptTxt = buildPersonalAiPrompt();
-      try {
-        await navigator.clipboard.writeText(promptTxt);
-        msg('Đã sao chép yêu cầu & nội dung! Hãy chọn ChatGPT / Gemini / Claude bên cạnh rồi dán (Ctrl+V).');
-      } catch (_) {
-        const ta = q('#ai-paste');
-        if (ta) {
-          ta.value = promptTxt;
-          ta.select();
-          try { document.execCommand('copy'); } catch (__) {}
-        }
-        msg('Đã đưa yêu cầu vào ô bên dưới — hãy nhấn Ctrl+C để sao chép rồi mở công cụ AI.');
-      }
-    };
-
-    const pasteApplyBtn = q('#ai-paste-apply');
-    if (pasteApplyBtn) pasteApplyBtn.onclick = () => {
-      const parsed = parseExternalAiText(q('#ai-paste')?.value || '');
-      if (!parsed || (!parsed.nd && !parsed.ty)) {
-        msg('Hãy dán nội dung kết quả từ ChatGPT / Gemini / Claude trước khi áp dụng.');
-        return;
-      }
-      if (parsed.ty) S.ty = parsed.ty;
-      if (parsed.cc && parsed.cc.length) S.cc = parsed.cc.join('\n');
-      if (parsed.nd) S.nd = parsed.nd;
-      sync();
-      render();
-      msg('Đã áp dụng kết quả AI vào bản soạn thảo.');
-    };
 
     if (runBtn) runBtn.onclick = async () => {
       errEl.innerHTML = '';
@@ -1346,13 +1541,17 @@
             nd: S.nd || ''
           }
         });
+        populateProviderSelect(q('#ai-provider'));
+        populateProviderSelect(q('#opt-ai-provider'));
+        renderAiConnections();
+
         lastAiResult = res;
         outEl.className = 'ai-out';
         outEl.style.display = 'block';
         outEl.innerHTML = `
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
             <b>Đề xuất đã biên tập</b>
-            <span class="tag">${esc(res.provider || 'AI miễn phí')}</span>
+            <span class="tag">${esc(res.provider || 'AI Tự động')}</span>
           </div>
           ${res.summary ? `<div class="it ok" style="margin:4px 0 8px">${esc(res.summary)}</div>` : ''}
           ${res.ty ? `<div><span class="mu">Trích yếu:</span> <b>${esc(res.ty)}</b></div>` : ''}
@@ -1382,7 +1581,7 @@
         };
         q('#ai-close').onclick = () => { outEl.style.display = 'none'; };
       } catch (e) {
-        errEl.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối máy chủ AI.')} <span style="color:var(--tx)">Bạn có thể dùng mục <b>"Hoặc kết nối trực tiếp bằng tài khoản AI của bạn"</b> ngay bên dưới mà không cần cấu hình máy chủ.</span></div>`;
+        errEl.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối công cụ AI lúc này.')}</div>`;
       } finally {
         runBtn.disabled = false;
         runBtn.textContent = orig;

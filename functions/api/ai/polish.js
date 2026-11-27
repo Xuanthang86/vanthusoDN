@@ -29,6 +29,7 @@ export async function onRequestOptions() {
 export async function onRequestGet({ env }) {
   return json({
     providers: {
+      free_auto: true,
       gemini: Boolean(env && env.GEMINI_API_KEY),
       openai: Boolean(env && env.OPENAI_API_KEY),
       claude: Boolean(env && env.ANTHROPIC_API_KEY),
@@ -221,6 +222,36 @@ async function runWorkersAI(env, { systemInstruction, contents }) {
   return { ok: true, data: normalizeOut(extractJson(txt), 'Cloudflare Workers AI') };
 }
 
+async function runPollinationsFree(_env, { systemInstruction, contents }) {
+  const resp = await fetch('https://text.pollinations.ai/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'openai',
+      private: true,
+      jsonMode: true,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: contents }
+      ]
+    })
+  });
+  const txt = await resp.text();
+  if (!resp.ok) {
+    let msg = `AI miễn phí đang tạm bận (${resp.status}).`;
+    try {
+      const parsed = JSON.parse(txt);
+      if (parsed?.error?.code === 'FREE_LIMIT') {
+        msg = 'AI tự động đang tạm giới hạn lượt liên tiếp. Hãy thử lại sau ít giây hoặc kết nối công cụ AI trực tiếp trên trang.';
+      } else if (parsed?.error?.message) {
+        msg = parsed.error.message;
+      }
+    } catch (_) {}
+    return { ok: false, status: resp.status === 402 ? 429 : resp.status, error: msg };
+  }
+  return { ok: true, data: normalizeOut(extractJson(txt), 'AI Tự động (Miễn phí)') };
+}
+
 export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json();
@@ -238,7 +269,8 @@ export async function onRequestPost({ request, env }) {
       openai: { fn: runOpenAI, envHint: 'OPENAI_API_KEY (ChatGPT / OpenAI)' },
       claude: { fn: runClaude, envHint: 'ANTHROPIC_API_KEY (Claude / Anthropic)' },
       groq: { fn: runGroq, envHint: 'GROQ_API_KEY (Groq)' },
-      workers_ai: { fn: runWorkersAI, envHint: 'binding Workers AI tên AI' }
+      workers_ai: { fn: runWorkersAI, envHint: 'binding Workers AI tên AI' },
+      free_auto: { fn: runPollinationsFree, envHint: 'AI Tự động' }
     };
 
     if (choice !== 'auto') {
@@ -249,27 +281,21 @@ export async function onRequestPost({ request, env }) {
       const res = await target.fn(env, prompts);
       if (!res) {
         return json(
-          { error: `Cloudflare Pages chưa cấu hình ${target.envHint}. Hãy thêm trong Settings > Variables and Secrets (hoặc Bindings) rồi triển khai lại.` },
+          { error: `Máy chủ chưa cấu hình ${target.envHint}. Hãy kết nối công cụ AI trực tiếp trên trang hoặc chọn AI Tự động.` },
           503
         );
       }
       return res.ok ? json(res.data) : json({ error: res.error }, res.status);
     }
 
-    for (const k of ['gemini', 'openai', 'claude', 'groq', 'workers_ai']) {
+    for (const k of ['gemini', 'openai', 'claude', 'groq', 'workers_ai', 'free_auto']) {
       const res = await map[k].fn(env, prompts);
       if (res) {
         return res.ok ? json(res.data) : json({ error: res.error }, res.status);
       }
     }
 
-    return json(
-      {
-        error:
-          'Máy chủ Cloudflare Pages chưa cấu hình biến môi trường AI nào (GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY hoặc binding Workers AI).'
-      },
-      503
-    );
+    return json({ error: 'Không thể kết nối AI tự động lúc này.' }, 503);
   } catch (err) {
     return json({ error: err?.message || 'Không thể xử lý yêu cầu AI.' }, 500);
   }
