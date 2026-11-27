@@ -4,9 +4,10 @@ const NB='\u00a0',q=s=>document.querySelector(s),at=s=>esc(s).replace(/"/g,'&quo
 
 /* ---------- CSS bổ sung ---------- */
 const st=document.createElement('style');st.textContent=`#toast{top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;background:#1e3a8a!important;font-size:16px;font-weight:600;padding:18px 28px;text-align:center;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.45)!important;max-width:min(520px,90%);cursor:pointer}
-.cfg{display:grid;grid-template-columns:1fr 1fr;gap:16px}.cfg>div{border:1px solid var(--bd);border-radius:10px;padding:12px}@media(max-width:760px){.cfg{grid-template-columns:1fr}}
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.cfg>div{border:1px solid var(--bd);border-radius:10px;padding:12px}@media(max-width:760px){.cfg{grid-template-columns:1fr}}
 .lr{display:grid;grid-template-columns:1fr 1.2fr 1fr auto;gap:6px;margin:5px 0}.lr input{padding:7px}
-.btn.on{background:var(--pr);color:#fff;border-color:var(--pr)}.blk{margin-bottom:10px}`;
+.btn.on{background:var(--pr);color:#fff;border-color:var(--pr)}.blk{margin-bottom:10px}
+[data-c="dv"]{margin-bottom:6px}`;
 document.head.appendChild(st);
 
 /* ---------- Đổi tên ---------- */
@@ -23,15 +24,19 @@ C.leadersD=C.leadersD||'BÍ THƯ | | T/M ĐẢNG UỶ\nPHÓ BÍ THƯ | | ';
 leaders=function(){return((mode=='dang'?C.leadersD:C.leaders)||'').split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a[0])};
 
 /* ---------- Bọc các hàm dựng văn bản ---------- */
-const isQ=()=>mode=='nn'&&['QC','QyĐ'].includes(S.type);
-const _mk=mkTpl;mkTpl=function(k){const r=_mk(k);if(mode=='dang'&&r.nn)r.nn=r.nn.replace('Lưu Văn phòng.','Lưu VP.');if(mode=='nn'&&['QC','QyĐ'].includes(k))r.nd=r.nd.replace(/^\(Ban hành[^\n]*\n+/,'');return r};
+const isQBase=()=>mode=='nn'&&['QC','QyĐ'].includes(S.type);
+const isQ=()=>isQBase()&&!S.qcDirect;
+const _mk=mkTpl;mkTpl=function(k){const r=_mk(k);if(mode=='dang'&&r.nn)r.nn=r.nn.replace('Lưu Văn phòng.','Lưu VP.');if(mode=='nn'&&['QC','QyĐ'].includes(k)){r.nd=r.nd.replace(/^\(Ban hành[^\n]*\n+/,'');r.qcDirect=false}return r};
 
 const _b=build;build=function(){let m;
- if(isQ()){const t=S.type;S.type='KH';try{m=_b()}finally{S.type=t}
-  m.L=m.L.filter(o=>!o.so);m.B[0].rs[0].x=name(t).toUpperCase();
-  const ri=m.B.findIndex(b=>b.rule);
-  m.B.splice(ri+1,0,{rs:[{x:'Ban hành kèm theo Quyết định số'+NB.repeat(10)+'/QĐ-'+C.nA,i:1}],al:'c',gap:1});
-  m.F={k:'none'};m.plain=false}
+ if(isQBase()){const t=S.type,dir=!!S.qcDirect;S.type='KH';try{m=_b()}finally{S.type=t}
+  m.B[0].rs[0].x=name(t).toUpperCase();
+  if(dir){const ab=TY(t)[2];m.L=m.L.map(o=>o.so?{...o,x:'Số:'+(S.so?' '+S.so:NB.repeat(14))+'/'+ab+'-'+C.nA}:o)}
+  else{m.L=m.L.filter(o=>!o.so);
+   const ri=m.B.findIndex(b=>b.rule);
+   m.B.splice(ri+1,0,{rs:[{x:'Ban hành kèm theo Quyết định số'+NB.repeat(10)+'/QĐ-'+C.nA,i:1}],al:'c',gap:1});
+   m.F={k:'none'}}
+  m.plain=false}
  else m=_b();
  if(mode=='nn'&&kind()=='bb'&&m.F.k=='bb')m.F.nr=[];
  if(kind()=='pt'){m.B=m.B.filter(b=>!b.rule);const sp={rs:[{x:NB}],al:'c'};
@@ -51,9 +56,15 @@ const _dx=docXml;docXml=function(){let x=_dx();
    const k=tc[tc.length-1].replace(/<w:tcW[^>]*\/>/,`<w:tcW w:w="9355" w:type="dxa"/><w:gridSpan w:val="${mc}"/>`);return r.replace(/<w:tc>.*<\/w:tc>/s,()=>k)})}
  return x};
 
-const _ck=check;check=function(t){return _ck(t).filter(r=>!(kind()=='bb'&&/Thiếu Nơi nhận/.test(r[1]))&&!(isQ()&&/kèm theo Quyết định/.test(r[1]))).map(r=>[r[0],r[1].replace(/([Kk])hối Nhà nước/g,'$1hối Chính quyền')])};
+const _ck=check;check=function(t){return _ck(t).filter(r=>!(kind()=='bb'&&/Thiếu Nơi nhận/.test(r[1]))&&!(isQBase()&&/kèm theo Quyết định/.test(r[1]))&&!(isQ()&&(/Thiếu chức vụ hoặc họ tên/.test(r[1])||/Thiếu Nơi nhận/.test(r[1])))).map(r=>[r[0],r[1].replace(/([Kk])hối Nhà nước/g,'$1hối Chính quyền')])};
 
-const _v=vis;vis=function(){_v();if(kind()=='bb')$('#f-nn').style.display='none'};
+const _v=vis;vis=function(){_v();
+ const kd=kind(),hideSo=(noSo()&&!S.qcDirect);
+ const fSo=q('#f-so'),fQcd=q('#f-qcd');
+ if(fSo)fSo.style.display=hideSo?'none':'';
+ if(fQcd)fQcd.style.display=isQBase()?'':'none';
+ if(kd=='bb'||isQ())$('#f-nn').style.display='none';
+ if(isQ())$('#f-sg').style.display='none'};
 
 const _sm=setMode;setMode=function(m){const ch=m!=mode;
  if(ch){if(m=='dang'&&/GIÁM ĐỐC/i.test(S.cv)){S.cv='BÍ THƯ';S.quyen='T/M ĐẢNG UỶ';S.ten=''}
@@ -75,12 +86,35 @@ const DEF={cq:[mk('ub','UBND THÀNH PHỐ ĐÀ NẴNG',''),
  mk('vpub','VĂN PHÒNG ỦY BAN NHÂN DÂN THÀNH PHỐ','ub','VP'),mk('tt','THANH TRA THÀNH PHỐ','ub','TTr'),
  mk('bql','BAN QUẢN LÝ KHU CÔNG NGHỆ CAO VÀ CÁC KHU CÔNG NGHIỆP','ub','BQL'),
  mk('ttdmst','TRUNG TÂM ĐỔI MỚI SÁNG TẠO','skhcn','TTĐMST','TRUNG TÂM ĐỔI MỚI SÁNG TẠO ĐÀ NẴNG','Trung tâm Đổi mới sáng tạo Đà Nẵng'),
- mk('tttk','PHÒNG THÔNG TIN - THỐNG KÊ','ttdmst','TTTK','PHÒNG THÔNG TIN - THỐNG KÊ','Phòng Thông tin - Thống kê')],
+ mk('qttc','PHÒNG QUẢN TRỊ - TÀI CHÍNH','ttdmst','QTTC','PHÒNG QUẢN TRỊ - TÀI CHÍNH','Phòng Quản trị - Tài chính'),
+ mk('pthst','PHÒNG PHÁT TRIỂN HỆ SINH THÁI ĐỔI MỚI SÁNG TẠO','ttdmst','PTHST','PHÒNG PHÁT TRIỂN HỆ SINH THÁI ĐỔI MỚI SÁNG TẠO','Phòng Phát triển hệ sinh thái đổi mới sáng tạo'),
+ mk('tttk','PHÒNG THÔNG TIN - THỐNG KÊ','ttdmst','TTTK','PHÒNG THÔNG TIN - THỐNG KÊ','Phòng Thông tin - Thống kê'),
+ mk('cnsh','PHÒNG CÔNG NGHỆ SINH HỌC','ttdmst','CNSH','PHÒNG CÔNG NGHỆ SINH HỌC','Phòng Công nghệ sinh học'),
+ mk('vmbd','PHÒNG VI MẠCH, BÁN DẪN VÀ TRÍ TUỆ NHÂN TẠO','ttdmst','VMBD','PHÒNG VI MẠCH, BÁN DẪN VÀ TRÍ TUỆ NHÂN TẠO','Phòng Vi mạch, bán dẫn và trí tuệ nhân tạo'),
+ mk('pttt','PHÒNG PHÁT TRIỂN THỊ TRƯỜNG KHOA HỌC VÀ CÔNG NGHỆ','ttdmst','PTTT','PHÒNG PHÁT TRIỂN THỊ TRƯỜNG KHOA HỌC VÀ CÔNG NGHỆ','Phòng Phát triển thị trường khoa học và công nghệ')],
  dang:[mk('tu','THÀNH UỶ ĐÀ NẴNG',''),
  mk('du1','ĐẢNG UỶ SỞ KHOA HỌC VÀ CÔNG NGHỆ','tu','ĐU'),mk('du2','ĐẢNG UỶ UBND THÀNH PHỐ ĐÀ NẴNG','tu','ĐU'),
  mk('b1','VĂN PHÒNG THÀNH UỶ','tu','VPTU'),mk('b2','BAN TỔ CHỨC THÀNH UỶ','tu','BTCTU'),mk('b3','UỶ BAN KIỂM TRA THÀNH UỶ','tu','UBKTTU'),mk('b4','BAN TUYÊN GIÁO VÀ DÂN VẬN THÀNH UỶ','tu','BTGDVTU'),
- mk('cb1','CHI BỘ TRUNG TÂM ĐỔI MỚI SÁNG TẠO','du1','CB','CHI BỘ TRUNG TÂM ĐỔI MỚI SÁNG TẠO ĐÀ NẴNG')]};
+ mk('cb1','CHI BỘ TRUNG TÂM ĐỔI MỚI SÁNG TẠO','du1','CB','CHI BỘ TRUNG TÂM ĐỔI MỚI SÁNG TẠO')]};
 const OT=ls.g('vts-org',null)||DEF;
+(function migrateOrg(){
+ if(!OT||!Array.isArray(OT.cq))return;
+ let dirty=false;
+ const upsert=(item)=>{const cur=OT.cq.find(x=>x.id==item.id);if(!cur){OT.cq.push(item);dirty=true}else if(cur.n!=item.n||cur.p!=item.p||cur.f!=item.f||cur.s!=item.s||cur.a!=item.a){Object.assign(cur,item);dirty=true}};
+ upsert(mk('skhcn','SỞ KHOA HỌC VÀ CÔNG NGHỆ','ub','SKHCN','SỞ KHOA HỌC VÀ CÔNG NGHỆ THÀNH PHỐ ĐÀ NẴNG'));
+ upsert(mk('ttdmst','TRUNG TÂM ĐỔI MỚI SÁNG TẠO','skhcn','TTĐMST','TRUNG TÂM ĐỔI MỚI SÁNG TẠO ĐÀ NẴNG','Trung tâm Đổi mới sáng tạo Đà Nẵng'));
+ [
+  mk('qttc','PHÒNG QUẢN TRỊ - TÀI CHÍNH','ttdmst','QTTC','PHÒNG QUẢN TRỊ - TÀI CHÍNH','Phòng Quản trị - Tài chính'),
+  mk('pthst','PHÒNG PHÁT TRIỂN HỆ SINH THÁI ĐỔI MỚI SÁNG TẠO','ttdmst','PTHST','PHÒNG PHÁT TRIỂN HỆ SINH THÁI ĐỔI MỚI SÁNG TẠO','Phòng Phát triển hệ sinh thái đổi mới sáng tạo'),
+  mk('tttk','PHÒNG THÔNG TIN - THỐNG KÊ','ttdmst','TTTK','PHÒNG THÔNG TIN - THỐNG KÊ','Phòng Thông tin - Thống kê'),
+  mk('cnsh','PHÒNG CÔNG NGHỆ SINH HỌC','ttdmst','CNSH','PHÒNG CÔNG NGHỆ SINH HỌC','Phòng Công nghệ sinh học'),
+  mk('vmbd','PHÒNG VI MẠCH, BÁN DẪN VÀ TRÍ TUỆ NHÂN TẠO','ttdmst','VMBD','PHÒNG VI MẠCH, BÁN DẪN VÀ TRÍ TUỆ NHÂN TẠO','Phòng Vi mạch, bán dẫn và trí tuệ nhân tạo'),
+  mk('pttt','PHÒNG PHÁT TRIỂN THỊ TRƯỜNG KHOA HỌC VÀ CÔNG NGHỆ','ttdmst','PTTT','PHÒNG PHÁT TRIỂN THỊ TRƯỜNG KHOA HỌC VÀ CÔNG NGHỆ','Phòng Phát triển thị trường khoa học và công nghệ')
+ ].forEach(upsert);
+ if(dirty)ls.s('vts-org',OT);
+ if(C.nO=='TRUNG TÂM ĐỔI MỚI SÁNG TẠO ĐÀ NẴNG'){C.nO='TRUNG TÂM ĐỔI MỚI SÁNG TẠO';const e=q('[data-c=nO]');if(e)e.value=C.nO}
+ if(C.nP=='TRUNG TÂM ĐỔI MỚI SÁNG TẠO'){C.nP='TRUNG TÂM ĐỔI MỚI SÁNG TẠO ĐÀ NẴNG';const e=q('[data-c=nP]');if(e)e.value=C.nP}
+})();
 
 const card=q('#cf .card'),kids=[...card.children],fi=t=>kids.findIndex(e=>e.tagName=='B'&&e.textContent.includes(t));
 const ia=fi('Khối Nhà nước'),id_=fi('Khối Đảng'),il=fi('Danh bạ');
@@ -99,10 +133,12 @@ function orgUI(box,key,F){const nodes=()=>OT[key],by=i=>nodes().find(x=>x.id==i)
  w.innerHTML='<label>Chọn cơ quan chủ quản (cấp trên)</label><select class="op"></select><label>Chọn cơ quan ban hành (cấp dưới của cơ quan chủ quản)</label><select class="oo"></select><label>Thêm đơn vị cấp dưới cho cơ quan chủ quản đang chọn</label><div class="row"><input class="on" placeholder="TÊN ĐƠN VỊ (in hoa)"><input class="oa" placeholder="Viết tắt (nếu có)"></div><button class="btn" style="margin-top:6px">+ Thêm đơn vị</button>';
  box.firstElementChild.after(w);
  const sp=w.querySelector('.op'),so=w.querySelector('.oo');
- const fillP=()=>{sp.innerHTML=nodes().map(x=>`<option value="${x.id}">${'– '.repeat(dp(x))+esc(x.f)}</option>`).join('')};
+ const isRoom=x=>/^PHÒNG\b/i.test(x.n)&&!nodes().some(c=>c.p===x.id);
+ const tree=()=>{const out=[],seen=new Set(),walk=pid=>{nodes().filter(x=>(x.p||'')==pid&&!isRoom(x)).forEach(x=>{if(seen.has(x.id))return;seen.add(x.id);out.push(x);walk(x.id)})};walk('');nodes().filter(x=>!isRoom(x)&&!seen.has(x.id)).forEach(x=>out.push(x));return out};
+ const fillP=()=>{sp.innerHTML=tree().map(x=>`<option value="${x.id}">${'– '.repeat(dp(x))+esc(x.f)}</option>`).join('')};
  const fillO=()=>{so.innerHTML=nodes().filter(x=>x.p==sp.value).map(x=>`<option value="${x.id}">${esc(x.n)}</option>`).join('')||'<option value="">(chưa có đơn vị cấp dưới)</option>'};
  const apply=()=>{const p=by(sp.value),o=by(so.value);if(p)setC(F.P,p.f);if(o){setC(F.O,o.n);if(o.a)setC(F.A,o.a);if(F.N)setC(F.N,o.s||sent(o.f))}render()};
- const init=()=>{fillP();const p=nodes().find(x=>x.f==C[F.P]);if(p)sp.value=p.id;fillO();const o=nodes().find(x=>x.p==sp.value&&x.n==C[F.O]);if(o)so.value=o.id};
+ const init=()=>{fillP();const p=nodes().find(x=>!isRoom(x)&&x.f==C[F.P]);if(p)sp.value=p.id;fillO();const o=nodes().find(x=>x.p==sp.value&&(x.n==C[F.O]||x.f==C[F.O]||C[F.O]&&x.n.indexOf(C[F.O])===0));if(o)so.value=o.id};
  sp.onchange=()=>{fillO();apply()};so.onchange=apply;
  w.querySelector('button').onclick=()=>{const n=w.querySelector('.on').value.trim().toUpperCase();if(!n){msg('Hãy nhập tên đơn vị cần thêm.');return}
   const pid=sp.value,nid=key+Date.now();nodes().push(mk(nid,n,pid,w.querySelector('.oa').value.trim().toUpperCase()));ls.s('vts-org',OT);

@@ -26,12 +26,12 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 </style><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script></head><body>
 <header><div><h1>App Văn thư số</h1><small>Chuẩn chính quyền, đúng văn bản Đảng – soạn thảo và rà soát thể thức</small></div>
 <div class="seg"><button id="m-nn">Khối Nhà nước – NĐ 30/2020</button><button id="m-dang">Khối Đảng – HD 05-HD/VPTW</button></div></header>
-<nav id="nav"><button data-t="soan" class="on">1. Soạn thảo</button><button data-t="ra">2. Rà soát</button><button data-t="tra">3. Tra cứu</button><button data-t="ls">4. Lịch sử</button><button data-t="cf">5. Cấu hình đơn vị</button></nav>
+<nav id="nav"><button data-t="soan" class="on">1. Soạn thảo</button><button data-t="ra">2. Rà soát</button><button data-t="tra">3. Tra cứu</button><button data-t="ls">4. Lịch sử</button><button data-t="cf">5. Cấu hình đơn vị</button><button data-t="opt">6. Tối ưu file</button><button data-t="dg">7. Đánh giá</button></nav>
 <datalist id="dl-names"></datalist><div id="toast"></div><main>
 <section class="tab on" id="soan"><div class="grid"><div class="card">
 <b>Thông tin văn bản</b> <span class="tag" id="mtag"></span>
 <label>Mẫu soạn sẵn</label><div class="row"><select id="tpl"></select><button class="btn" id="usetpl">Dùng mẫu</button></div>
-<div class="row"><div><label>Loại văn bản</label><select id="type" data-k="type"></select></div><div><label>Số (để trống nếu chưa cấp)</label><input data-k="so" inputmode="numeric"></div></div>
+<div class="row"><div><label>Loại văn bản</label><select id="type" data-k="type"></select></div><div id="f-so"><label>Số (để trống nếu chưa cấp)</label><input data-k="so" inputmode="numeric"></div></div><div id="f-qcd" style="display:none;margin:6px 0 2px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" data-k="qcDirect" style="width:auto"> Ban hành trực tiếp (có Số, Nơi nhận, Người ký)</label></div>
 <label>Ngày ban hành</label><input type="date" data-k="date">
 <label>Trích yếu nội dung (Công văn: nhập sau “V/v”)</label><input data-k="ty">
 <div id="f-tq"><label>Thẩm quyền ban hành (QĐ, NQ khối Nhà nước; mỗi dòng một dòng in đậm)</label><textarea data-k="tq" style="min-height:60px"></textarea></div><label>Căn cứ ban hành (mỗi dòng một căn cứ)</label><textarea data-k="cc"></textarea>
@@ -52,6 +52,8 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 <b style="display:block;margin-top:14px">Khối Nhà nước</b><label>Cơ quan chủ quản (in hoa)</label><input data-c="nP" placeholder="SỞ KHOA HỌC VÀ CÔNG NGHỆ THÀNH PHỐ ĐÀ NẴNG (tự tách dòng ở “THÀNH PHỐ…”)"><label>Cơ quan ban hành (in hoa)</label><input data-c="nO" placeholder="TRUNG TÂM ĐỔI MỚI SÁNG TẠO"><label>Viết tắt cơ quan</label><input data-c="nA" placeholder="TTĐMST"><label>Tên cơ quan viết thường (dùng trong câu, VD “… kính thông báo”)</label><input data-c="nOn" placeholder="Trung tâm Đổi mới sáng tạo Đà Nẵng"><label>Viết tắt trong ký hiệu Nghị quyết</label><input data-c="nqA" placeholder="HĐND"><label>Cơ quan ban hành Nghị quyết (in hoa)</label><input data-c="nqO" placeholder="HỘI ĐỒNG NHÂN DÂN THÀNH PHỐ ĐÀ NẴNG"><label>Tên đầy đủ phòng soạn thảo mặc định (dùng trong Phiếu trình)</label><input data-c="dvn">
 <b style="display:block;margin-top:14px">Khối Đảng</b><label>Cấp ủy cấp trên (in hoa)</label><input data-c="dP" placeholder="THÀNH UỶ ĐÀ NẴNG"><label>Cơ quan ban hành (in hoa)</label><input data-c="dO" placeholder="ĐẢNG UỶ SỞ KHOA HỌC VÀ CÔNG NGHỆ"><label>Viết tắt cơ quan</label><input data-c="dA" placeholder="ĐU">
 <b style="display:block;margin-top:14px">Danh bạ lãnh đạo (tự điền người ký)</b><p class="mu">Mỗi dòng: Chức vụ | Họ và tên | Quyền hạn ký (nếu có, VD KT. GIÁM ĐỐC). Dùng để chọn nhanh người ký và điền tên Giám đốc, Phó Giám đốc trong Phiếu trình.</p><textarea data-c="leaders" style="min-height:90px"></textarea><b style="display:block;margin-top:14px">Chia sẻ cấu hình giữa các máy, các đơn vị</b><div class="bar"><button class="btn" id="cfx">Xuất cấu hình (JSON)</button><button class="btn" id="cfi">Nhập cấu hình</button></div><textarea id="cfj" placeholder="Cấu hình hiện ở đây; dán cấu hình của đơn vị khác rồi bấm Nhập cấu hình"></textarea><div class="bar" style="margin-top:14px"><button class="btn p" id="svcf">Lưu cấu hình</button><button class="btn" id="th">Đổi giao diện sáng/tối</button></div></div></section>
+<section class="tab" id="opt"></section>
+<section class="tab" id="dg"></section>
 </main>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -408,4 +410,5 @@ $('#cfi').onclick=()=>{try{const o=JSON.parse($('#cfj').value);C={...CD,...C,...
 fillLead();setMode('nn');
 </script>
 <script src="patch.js"></script>
+<script src="features.js"></script>
 </body></html>
