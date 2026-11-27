@@ -116,7 +116,7 @@
       <select id="soan-prof-sel" style="width:auto;flex:1;min-width:140px;padding:6px 8px"></select>
       <button type="button" class="btn" id="soan-prof-apply" style="padding:6px 10px;font-size:12px">Áp dụng định dạng</button>
       <button type="button" class="btn" id="soan-prof-go" style="padding:6px 10px;font-size:12px">Tối ưu file</button>`;
-    const firstLabel = card.querySelector('label');
+    const firstLabel = [...card.children].find(el => el.tagName === 'LABEL');
     if (firstLabel) card.insertBefore(bar, firstLabel);
     else card.appendChild(bar);
   })();
@@ -1482,7 +1482,7 @@
         <div id="ai-out" style="display:none"></div>
       </div>
     `;
-    if (ndLabel) card.insertBefore(box, ndLabel);
+    if (ndLabel && ndLabel.parentNode) ndLabel.parentNode.insertBefore(box, ndLabel);
     else card.appendChild(box);
 
     populateProviderSelect(q('#ai-provider'));
