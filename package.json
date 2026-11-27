@@ -8,7 +8,7 @@
     "dev": "node server.js",
     "start": "node server.js",
     "build": "node -e \"console.log('Static site ready')\"",
-    "lint": "node --check server.js && node --check patch.js && node --check features.js"
+    "lint": "node --check server.js && node --check patch.js && node --check features.js && node --input-type=module --check < functions/api/reviews.js"
   },
   "dependencies": {
     "express": "^4.21.2"

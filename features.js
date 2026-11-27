@@ -2,6 +2,7 @@
 (function () {
   const q = s => document.querySelector(s);
   const qa = s => [...document.querySelectorAll(s)];
+  const at = s => esc(s).replace(/"/g, '&quot;');
 
   /* ---------- CSS bổ sung ---------- */
   const css = document.createElement('style');
@@ -509,12 +510,12 @@
           </div>
         </div>
         <div class="row">
-          <div><label>Tên hồ sơ / Cá nhân</label><input id="pf-name" value="${esc(p.name)}"></div>
-          <div><label>Phòng viết tắt mặc định</label><input id="pf-dv" value="${esc(p.deptAbbr || '')}" placeholder="VD: TTTK"></div>
+          <div><label>Tên hồ sơ / Cá nhân</label><input id="pf-name" maxlength="80" value="${at(p.name)}"></div>
+          <div><label>Phòng viết tắt mặc định</label><input id="pf-dv" maxlength="20" value="${at(p.deptAbbr || '')}" placeholder="VD: TTTK"></div>
         </div>
         <div class="row">
-          <div><label>Chức vụ người ký hay dùng</label><input id="pf-cv" value="${esc(p.defaultSignerRole || '')}" placeholder="VD: GIÁM ĐỐC"></div>
-          <div><label>Họ tên người ký hay dùng</label><input id="pf-ten" value="${esc(p.defaultSignerName || '')}" list="dl-names"></div>
+          <div><label>Chức vụ người ký hay dùng</label><input id="pf-cv" maxlength="80" value="${at(p.defaultSignerRole || '')}" placeholder="VD: GIÁM ĐỐC"></div>
+          <div><label>Họ tên người ký hay dùng</label><input id="pf-ten" maxlength="80" value="${at(p.defaultSignerName || '')}" list="dl-names"></div>
         </div>
         <b style="display:block;margin-top:14px">Thông số định dạng chuẩn cá nhân (áp dụng cả xem trước & xuất .docx)</b>
         <div class="row">
@@ -708,12 +709,14 @@
         mode = lastAnalysis.detectedMode;
         const blob = await makeDocx();
         const fn = `ToiUu-${lastAnalysis.detectedType}-${(lastAnalysis.fileName || 'van-ban').replace(/\.[^.]+$/, '').replace(/[^\w-]/g, '_')}.docx`;
+        const u = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = u;
         a.download = fn;
         document.body.appendChild(a);
         a.click();
         a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 10000);
         msg('Đã xuất file Word (.docx) tối ưu theo chuẩn & hồ sơ cá nhân.');
       } catch (e) {
         msg('Không xuất được tệp: ' + (e.message || e));
@@ -802,8 +805,9 @@
 
   async function syncServerReviews() {
     try {
-      const r = await fetch('/api/reviews');
-      if (r.ok) {
+      const r = await fetch('/api/reviews', { headers: { Accept: 'application/json' } });
+      const ct = r.headers.get('content-type') || '';
+      if (r.ok && ct.includes('application/json')) {
         const list = await r.json();
         if (Array.isArray(list) && list.length) {
           const seen = new Set(reviews.map(x => x.id));
@@ -814,7 +818,7 @@
         }
       }
     } catch (_) {
-      /* Bỏ qua nếu chạy trên static host như GitHub Pages */
+      /* Bỏ qua nếu chạy trên static host không có API */
     }
   }
 
@@ -841,11 +845,11 @@
 
         <label>2. Chọn nhanh nhận xét gợi ý (có thể chọn nhiều)</label>
         <div class="chips" id="dg-chips">
-          ${chips.map(c => `<button type="button" class="chip${rvState.tags.has(c) ? ' on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join('')}
+          ${chips.map(c => `<button type="button" class="chip${rvState.tags.has(c) ? ' on' : ''}" data-c="${at(c)}">${esc(c)}</button>`).join('')}
         </div>
 
         <label>3. Góp ý thêm (tùy chọn – không bắt buộc)</label>
-        <input id="dg-note" value="${esc(rvState.note)}" placeholder="Không bắt buộc phải nhập...">
+        <input id="dg-note" maxlength="500" value="${at(rvState.note)}" placeholder="Không bắt buộc phải nhập...">
         <div class="bar" style="margin-top:14px">
           <button type="button" class="btn p" id="dg-submit">Gửi đánh giá</button>
           <button type="button" class="btn" id="dg-reset">Làm lại</button>
