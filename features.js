@@ -17,15 +17,8 @@
   .mar-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .mar-grid span{display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
   .mar-grid input{padding:6px 7px;text-align:center}
-  .ai-conn-wrap{border-top:1px dashed var(--bd);margin-top:10px;padding-top:10px}
-  .ai-conn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px}
-  .ai-conn-card{background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
-  .ai-conn-card.act{border-color:var(--pr);box-shadow:0 0 0 1px var(--pr)}
-  .ai-conn-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
-  .ai-conn-st{font-size:11px;font-weight:600;color:var(--mu)}
-  .ai-conn-st.ok{color:var(--ok)}
-  .ai-conn-btns{display:flex;gap:6px}
-  .ai-conn-btns button{flex:1;padding:4px 8px;font-size:12px}
+  .ai-conn-bar{margin-top:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--cd);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px}
+  .ai-conn-bar.need{border-color:var(--pr);background:rgba(30,58,138,.05)}
   .drop{border:2px dashed var(--bd);border-radius:12px;padding:22px 16px;text-align:center;background:var(--bg);cursor:pointer;transition:.15s border-color,.15s background}
   .drop.ov{border-color:var(--pr);background:rgba(30,58,138,.08)}
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
@@ -681,6 +674,7 @@
         <button type="button" class="btn" id="opt-learn">Học thói quen file vào hồ sơ cá nhân</button>
         <button type="button" class="btn" id="opt-to-review">Gửi sang Rà soát</button>
       </div>
+      <div id="opt-ai-conn-panel"></div>
       <div id="opt-ai-err"></div>
     `;
   }
@@ -796,7 +790,10 @@
     };
 
     const optSel = q('#opt-ai-provider');
-    if (optSel) populateProviderSelect(optSel);
+    if (optSel) {
+      populateProviderSelect(optSel);
+      renderAiConnections();
+    }
 
     const optAi = q('#opt-ai-polish');
     if (optAi && lastAnalysis) optAi.onclick = async () => {
@@ -1166,47 +1163,43 @@
   }
 
   function renderAiConnections() {
-    const host = q('#ai-conns-list');
-    if (!host) return;
-    const signed = isPuterSignedIn();
-    const cards = AI_PROVIDERS.filter(p => !p.builtIn && !p.serverOnly).map(p => {
-      const onServer = Boolean(availableProviders[p.id]);
-      const connected = onServer || (Boolean(aiConns[p.id]) && signed);
-      const isSelected = selectedAiProvider === p.id;
-      const stText = onServer
-        ? 'Sẵn sàng (Máy chủ)'
-        : (connected ? 'Đã kết nối ✓' : (aiConns[p.id] && !signed ? 'Cần đăng nhập lại' : 'Chưa kết nối'));
-      return `
-        <div class="ai-conn-card${isSelected ? ' act' : ''}">
-          <div class="ai-conn-top">
-            <b>${esc(p.label)}</b>
-            <span class="ai-conn-st${connected ? ' ok' : ''}">${esc(stText)}</span>
-          </div>
-          <div class="ai-conn-btns">
-            ${connected
-              ? `<button type="button" class="btn${isSelected ? ' p' : ''}" data-ai-use="${p.id}">${isSelected ? 'Đang chọn' : 'Chọn dùng'}</button>
-                 ${!onServer ? `<button type="button" class="btn" data-ai-disc="${p.id}">Ngắt</button>` : ''}`
-              : `<button type="button" class="btn p" data-ai-conn="${p.id}">Kết nối</button>`
-            }
-          </div>
-        </div>
-      `;
-    }).join('');
-    host.innerHTML = cards;
+    const panels = qa('#ai-conn-panel, #opt-ai-conn-panel');
+    if (!panels.length) return;
+    const id = selectedAiProvider || 'auto';
+    if (id === 'auto' || id === 'free_auto') {
+      panels.forEach(el => { el.innerHTML = ''; });
+      return;
+    }
+    const tool = AI_PROVIDERS.find(x => x.id === id);
+    const label = tool ? tool.label : id;
+    const onServer = Boolean(availableProviders[id]);
+    const connected = onServer || (Boolean(aiConns[id]) && isPuterSignedIn());
+
+    const html = connected
+      ? `<div class="ai-conn-bar">
+           <span><b style="color:var(--ok)">✓ Đã kết nối ${esc(label)}</b>${onServer ? ' (qua máy chủ)' : ' — sẵn sàng biên tập'}</span>
+           ${!onServer ? `<button type="button" class="btn" data-ai-disc="${esc(id)}" style="padding:4px 10px;font-size:12px">Ngắt kết nối</button>` : ''}
+         </div>`
+      : `<div class="ai-conn-bar need">
+           <span><b>${esc(label)}</b> chưa kết nối${aiConns[id] && !isPuterSignedIn() ? ' (cần đăng nhập lại)' : ''}.</span>
+           <button type="button" class="btn p" data-ai-conn="${esc(id)}" style="padding:5px 12px;font-size:12.5px">Kết nối ${esc(label)}</button>
+         </div>`;
+
+    panels.forEach(el => { el.innerHTML = html; });
 
     qa('[data-ai-conn]').forEach(b => {
       b.onclick = async () => {
-        const id = b.dataset.aiConn;
+        const cid = b.dataset.aiConn;
         b.disabled = true;
         try {
-          await ensurePuterToolConnected(id);
-          selectedAiProvider = id;
-          ls.s('vts-ai-prov', id);
+          await ensurePuterToolConnected(cid);
+          selectedAiProvider = cid;
+          ls.s('vts-ai-prov', cid);
           populateProviderSelect(q('#ai-provider'));
           populateProviderSelect(q('#opt-ai-provider'));
           renderAiConnections();
-          const tool = AI_PROVIDERS.find(x => x.id === id);
-          msg(`Đã kết nối ${tool ? tool.label : id} để sử dụng trực tiếp cho lần này và các lần sau.`);
+          const t = AI_PROVIDERS.find(x => x.id === cid);
+          msg(`Đã kết nối ${t ? t.label : cid} để sử dụng trực tiếp cho lần này và các lần sau.`);
         } catch (e) {
           msg(e.message || 'Chưa hoàn tất kết nối công cụ AI.');
         } finally {
@@ -1215,32 +1208,15 @@
       };
     });
 
-    qa('[data-ai-use]').forEach(b => {
-      b.onclick = () => {
-        const id = b.dataset.aiUse;
-        selectedAiProvider = id;
-        ls.s('vts-ai-prov', id);
-        populateProviderSelect(q('#ai-provider'));
-        populateProviderSelect(q('#opt-ai-provider'));
-        renderAiConnections();
-        const tool = AI_PROVIDERS.find(x => x.id === id);
-        msg(`Đã chọn sử dụng ${tool ? tool.label : id}.`);
-      };
-    });
-
     qa('[data-ai-disc]').forEach(b => {
       b.onclick = () => {
-        const id = b.dataset.aiDisc;
-        delete aiConns[id];
+        const did = b.dataset.aiDisc;
+        delete aiConns[did];
         ls.s(AI_CONNS_KEY, aiConns);
-        if (selectedAiProvider === id) {
-          selectedAiProvider = 'auto';
-          ls.s('vts-ai-prov', 'auto');
-        }
         populateProviderSelect(q('#ai-provider'));
         populateProviderSelect(q('#opt-ai-provider'));
         renderAiConnections();
-        msg('Đã ngắt kết nối công cụ AI khỏi danh sách sử dụng.');
+        msg('Đã ngắt kết nối công cụ AI.');
       };
     });
   }
@@ -1486,17 +1462,12 @@
             </select>
           </div>
         </div>
+        <div id="ai-conn-panel"></div>
         <div style="margin-top:8px">
           <button type="button" class="btn p" id="ai-run" style="width:100%">✨ Biên tập với AI</button>
         </div>
         <div id="ai-err"></div>
         <div id="ai-out" style="display:none"></div>
-
-        <div class="ai-conn-wrap">
-          <b style="font-size:12.5px">Kết nối &amp; chọn công cụ AI trực tiếp trên website</b>
-          <p class="mu" style="margin:3px 0 0;font-size:12px">Bạn có thể kết nối một hoặc nhiều công cụ AI để lưu dùng cho các lần sau và thay đổi lựa chọn bất kỳ lúc nào trước khi biên tập.</p>
-          <div id="ai-conns-list" class="ai-conn-grid"></div>
-        </div>
       </div>
     `;
     if (ndLabel) card.insertBefore(box, ndLabel);
