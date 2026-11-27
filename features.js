@@ -28,6 +28,12 @@
   .rbar-track{flex:1;height:8px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--bd)}
   .rbar-fill{height:100%;background:#f59e0b}
   .prof-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin:8px 0}
+  .ai-box{border:1px solid var(--pr);background:var(--bg);border-radius:10px;padding:10px 12px;margin:10px 0}
+  .ai-box summary{cursor:pointer;font-weight:700;color:var(--pr);display:flex;align-items:center;justify-content:space-between;list-style:none}
+  .ai-box summary::-webkit-details-marker{display:none}
+  .ai-out{background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:10px;font-size:13px}
+  .ai-pre{white-space:pre-wrap;font:13px/1.45 "Times New Roman",Times,serif;max-height:220px;overflow-y:auto;background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;margin:6px 0}
+  .ai-err{border-left:4px solid var(--er);background:var(--cd);padding:8px 10px;border-radius:6px;margin-top:8px;font-size:13px;color:var(--er)}
   `;
   document.head.appendChild(css);
 
@@ -600,10 +606,12 @@
       ${a.issues.length ? a.issues.map(i => `<div class="it wa">${esc(i)}</div>`).join('') : '<div class="it ok">Cấu trúc và thông số cơ bản phù hợp thể thức quy định.</div>'}
       <div class="bar" style="margin-top:12px">
         <button type="button" class="btn p" id="opt-to-editor">Tối ưu & Nạp vào Soạn thảo</button>
+        <button type="button" class="btn" id="opt-ai-polish" style="border-color:var(--pr);color:var(--pr)">✨ AI biên tập câu từ & nạp Soạn thảo</button>
         <button type="button" class="btn" id="opt-dl-docx">Xuất ngay Word (.docx) đã tối ưu</button>
         <button type="button" class="btn" id="opt-learn">Học thói quen file vào hồ sơ cá nhân</button>
         <button type="button" class="btn" id="opt-to-review">Gửi sang Rà soát</button>
       </div>
+      <div id="opt-ai-err"></div>
     `;
   }
 
@@ -699,6 +707,44 @@
       render();
       nav('soan');
       msg('Đã tối ưu thể thức từ file "' + lastAnalysis.fileName + '" và nạp vào Soạn thảo.');
+    };
+
+    const optAi = q('#opt-ai-polish');
+    if (optAi && lastAnalysis) optAi.onclick = async () => {
+      const errBox = q('#opt-ai-err');
+      if (errBox) errBox.innerHTML = '';
+      const origTxt = optAi.textContent;
+      optAi.disabled = true;
+      optAi.textContent = 'Đang nhờ AI biên tập...';
+      try {
+        const d = lastAnalysis.draft;
+        const orgName = lastAnalysis.detectedMode === 'dang' ? C.dO : C.nO;
+        const res = await callAiPolish({
+          mode: lastAnalysis.detectedMode,
+          docType: lastAnalysis.detectedType,
+          docTypeName: (T[lastAnalysis.detectedMode].find(t => t[0] === lastAnalysis.detectedType) || [])[1] || lastAnalysis.detectedType,
+          orgName,
+          editStyle: 'polish',
+          rawInfo: '',
+          currentDraft: { ty: d.ty || '', cc: d.cc || '', nd: d.nd || '' }
+        });
+        Object.assign(S, d);
+        if (res.ty) S.ty = res.ty;
+        if (res.cc && res.cc.length) S.cc = res.cc.join('\n');
+        if (res.nd) S.nd = res.nd;
+        setMode(lastAnalysis.detectedMode);
+        sync();
+        vis();
+        render();
+        nav('soan');
+        msg('AI (' + (res.provider || 'Miễn phí') + ') đã biên tập mượt mà & nạp vào Soạn thảo.');
+      } catch (e) {
+        if (errBox) errBox.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối AI.')}</div>`;
+        msg(e.message || 'Không thể xử lý AI.');
+      } finally {
+        optAi.disabled = false;
+        optAi.textContent = origTxt;
+      }
     };
 
     const dlBtn = q('#opt-dl-docx');
@@ -946,7 +992,140 @@
   }
 
   /* ========================================================================
-   * PHẦN 4: KẾT NỐI SỰ KIỆN ĐIỀU HƯỚNG & KHỞI TẠO
+   * PHẦN 4: TRỢ LÝ AI BIÊN TẬP & HOÀN THIỆN NỘI DUNG HÀNH CHÍNH
+   * ======================================================================== */
+  async function callAiPolish(payload) {
+    const resp = await fetch('/api/ai/polish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const ct = resp.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      throw new Error('Máy chủ chưa hỗ trợ API /api/ai/polish (mã ' + resp.status + ').');
+    }
+    const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.error || ('Lỗi máy chủ AI (' + resp.status + ').'));
+    }
+    return data;
+  }
+
+  (function mountAiBoxInEditor() {
+    const card = q('#soan .grid .card');
+    if (!card) return;
+    const ndLabel = [...card.querySelectorAll('label')].find(lb => lb.textContent.includes('Nội dung văn bản'));
+    const box = document.createElement('details');
+    box.className = 'ai-box';
+    box.id = 'ai-box';
+    box.innerHTML = `
+      <summary>
+        <span>✨ Trợ lý AI biên tập &amp; hoàn thiện văn phong hành chính</span>
+        <span class="tag">Miễn phí</span>
+      </summary>
+      <div style="margin-top:8px">
+        <p class="mu" style="margin:0 0 6px;font-size:12px">Dán thông tin gốc, gạch đầu dòng thô hoặc ý chính cần trình bày. AI sẽ biên tập lại câu từ suôn mượt, cô đọng, bỏ ý trùng lặp và đúng thể thức NĐ 30/2020 hoặc HD 05-HD/VPTW.</p>
+        <label style="margin-top:4px">Thông tin gốc / ghi chú thô (tùy chọn nếu đã có nội dung bên dưới)</label>
+        <textarea id="ai-raw" style="min-height:86px" placeholder="VD: Họp giao ban tuần tới sáng thứ Hai lúc 8h tại phòng họp số 2, đánh giá tiến độ chuyển đổi số quý II, các phòng báo cáo kết quả, hoàn thành trước 15/5..."></textarea>
+        <div class="row" style="margin-top:6px;align-items:end">
+          <div>
+            <label style="margin-top:4px">Chế độ biên tập</label>
+            <select id="ai-style">
+              <option value="polish">Biên tập suôn mượt, bỏ lặp nội dung</option>
+              <option value="draft">Hoàn thiện thành văn bản từ ghi chú thô</option>
+              <option value="concise">Rút gọn cô đọng, súc tích hơn nữa</option>
+            </select>
+          </div>
+          <div>
+            <button type="button" class="btn p" id="ai-run" style="width:100%">✨ Biên tập với AI</button>
+          </div>
+        </div>
+        <div id="ai-err"></div>
+        <div id="ai-out" style="display:none"></div>
+      </div>
+    `;
+    if (ndLabel) card.insertBefore(box, ndLabel);
+    else card.appendChild(box);
+
+    let lastAiResult = null;
+    const runBtn = q('#ai-run');
+    const errEl = q('#ai-err');
+    const outEl = q('#ai-out');
+
+    if (runBtn) runBtn.onclick = async () => {
+      errEl.innerHTML = '';
+      const rawInfo = (q('#ai-raw')?.value || '').trim();
+      const editStyle = q('#ai-style')?.value || 'polish';
+      if (!rawInfo && !(S.nd || '').trim() && !(S.ty || '').trim()) {
+        errEl.innerHTML = '<div class="ai-err">Hãy nhập thông tin gốc vào ô trên hoặc điền nháp ở ô Nội dung văn bản rồi bấm lại.</div>';
+        return;
+      }
+
+      const orig = runBtn.textContent;
+      runBtn.disabled = true;
+      runBtn.textContent = 'Đang biên tập...';
+      outEl.style.display = 'none';
+
+      try {
+        const res = await callAiPolish({
+          mode,
+          docType: S.type,
+          docTypeName: name(S.type),
+          orgName: mode === 'dang' ? C.dO : C.nO,
+          editStyle,
+          rawInfo,
+          currentDraft: {
+            ty: S.ty || '',
+            cc: S.cc || '',
+            nd: S.nd || ''
+          }
+        });
+        lastAiResult = res;
+        outEl.className = 'ai-out';
+        outEl.style.display = 'block';
+        outEl.innerHTML = `
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
+            <b>Đề xuất đã biên tập</b>
+            <span class="tag">${esc(res.provider || 'AI miễn phí')}</span>
+          </div>
+          ${res.summary ? `<div class="it ok" style="margin:4px 0 8px">${esc(res.summary)}</div>` : ''}
+          ${res.ty ? `<div><span class="mu">Trích yếu:</span> <b>${esc(res.ty)}</b></div>` : ''}
+          ${res.cc && res.cc.length ? `<div style="margin-top:4px"><span class="mu">Căn cứ (${res.cc.length} dòng):</span><div class="ai-pre" style="max-height:90px">${esc(res.cc.join('\n'))}</div></div>` : ''}
+          <div><span class="mu">Nội dung đã biên tập:</span><div class="ai-pre">${esc(res.nd || '')}</div></div>
+          <div class="bar" style="margin:8px 0 0">
+            <button type="button" class="btn p" id="ai-apply-all">Áp dụng toàn bộ (Trích yếu, Căn cứ, Nội dung)</button>
+            <button type="button" class="btn" id="ai-apply-nd">Chỉ thay Nội dung</button>
+            <button type="button" class="btn" id="ai-close">Đóng</button>
+          </div>
+        `;
+        q('#ai-apply-all').onclick = () => {
+          if (!lastAiResult) return;
+          if (lastAiResult.ty) S.ty = lastAiResult.ty;
+          if (lastAiResult.cc && lastAiResult.cc.length) S.cc = lastAiResult.cc.join('\n');
+          if (lastAiResult.nd) S.nd = lastAiResult.nd;
+          sync();
+          render();
+          msg('Đã áp dụng bản biên tập AI vào văn bản đang soạn.');
+        };
+        q('#ai-apply-nd').onclick = () => {
+          if (!lastAiResult) return;
+          if (lastAiResult.nd) S.nd = lastAiResult.nd;
+          sync();
+          render();
+          msg('Đã cập nhật phần Nội dung văn bản từ gợi ý AI.');
+        };
+        q('#ai-close').onclick = () => { outEl.style.display = 'none'; };
+      } catch (e) {
+        errEl.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối máy chủ AI.')}</div>`;
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = orig;
+      }
+    };
+  })();
+
+  /* ========================================================================
+   * PHẦN 5: KẾT NỐI SỰ KIỆN ĐIỀU HƯỚNG & KHỞI TẠO
    * ======================================================================== */
   qa('#nav button').forEach(b => {
     b.addEventListener('click', () => {

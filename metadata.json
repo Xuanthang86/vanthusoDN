@@ -1,0 +1,8 @@
+{
+  "name": "Văn thư số thành phố Đà Nẵng",
+  "description": "Ứng dụng soạn thảo, rà soát thể thức văn bản hành chính chuẩn Nghị định 30/2020/NĐ-CP và văn bản Đảng theo Hướng dẫn 05-HD/VPTW, tối ưu file Word và biên tập bằng AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
