@@ -10,7 +10,10 @@ const st=document.createElement('style');st.textContent=`#toast{top:50%!importan
 #cf .row{margin-bottom:4px}
 .hs-fbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin-bottom:12px}
 .hs-ftabs,.hs-facts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.hs-ftabs .btn,.hs-facts .btn{padding:6px 10px;font-size:12.5px}`;
+.hs-ftabs .btn,.hs-facts .btn{padding:6px 10px;font-size:12.5px}
+.lr2{display:grid;grid-template-columns:1.35fr 1fr auto;gap:6px;margin:5px 0}.lr2 input{padding:7px}
+.dir-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.dir-tabs .btn{padding:6px 9px;font-size:12.5px}
+.dir-box{border:1px solid var(--bd);border-radius:10px;padding:10px;background:var(--bg)}`;
 document.head.appendChild(st);
 
 /* ---------- Đổi tên ---------- */
@@ -44,19 +47,14 @@ const _b=build;build=function(){let m;
  if(mode=='nn'&&kind()=='bb'&&m.F.k=='bb')m.F.nr=[];
  if(kind()=='pt'){m.B=m.B.filter(b=>!b.rule);const sp={rs:[{x:NB}],al:'c'};
   const ni=m.B.findIndex(b=>b.rs&&/^Người trình/.test(b.rs[0].x));if(ni>-1)m.B.splice(ni,0,sp,sp);
-  const ki=m.B.findIndex(b=>b.rs&&/^Kính gửi/.test(b.rs[0].x));if(ki>-1)m.B.splice(ki,0,sp,sp);
-  window._pt={solo:!S.pgdOn,mc:m.F.mc}}
+  const ki=m.B.findIndex(b=>b.rs&&/^Kính gửi/.test(b.rs[0].x));if(ki>-1)m.B.splice(ki,0,sp,sp)}
  return m};
 
 const _r=render;render=function(){_r();
- if(kind()=='bb'){const l=$('#paper').lastElementChild;if(l&&/Nơi nhận/.test(l.textContent))l.remove()}
- if(kind()=='pt'&&window._pt&&_pt.solo){const tr=$$('#paper table tr');[4,5,6].forEach(i=>{const r=tr[i];if(!r)return;const c=[...r.children],k=c[c.length-1];c.slice(0,-1).forEach(x=>x.remove());k.colSpan=_pt.mc})}};
+ if(kind()=='bb'){const l=$('#paper').lastElementChild;if(l&&/Nơi nhận/.test(l.textContent))l.remove()}};
 
 const _dx=docXml;docXml=function(){let x=_dx();
  if(kind()=='bb')x=x.replace(/<w:p>(?:(?!<w:p>).)*?Nơi nhận:<\/w:t><\/w:r><\/w:p>/s,'');
- if(kind()=='pt'&&window._pt&&_pt.solo){let n=0;const mc=_pt.mc;
-  x=x.replace(/<w:tr>.*?<\/w:tr>/gs,r=>{if(n++<5)return r;const tc=r.match(/<w:tc>.*?<\/w:tc>/gs);if(!tc)return r;
-   const k=tc[tc.length-1].replace(/<w:tcW[^>]*\/>/,`<w:tcW w:w="9071" w:type="dxa"/><w:gridSpan w:val="${mc}"/>`);return r.replace(/<w:tc>.*<\/w:tc>/s,()=>k)})}
  return x};
 
 const _ck=check;check=function(t){return _ck(t).filter(r=>!(kind()=='bb'&&/Thiếu Nơi nhận/.test(r[1]))&&!(isQBase()&&/kèm theo Quyết định/.test(r[1]))&&!(isQ()&&(/Thiếu chức vụ hoặc họ tên/.test(r[1])||/Thiếu Nơi nhận/.test(r[1])))).map(r=>[r[0],r[1].replace(/([Kk])hối Nhà nước/g,'$1hối Chính quyền')])};
@@ -189,10 +187,289 @@ function led(box,t,title){const h=document.createElement('b');h.style.cssText='d
 
 orgUI(Lc,'cq',{P:'nP',O:'nO',A:'nA',N:'nOn'});
 orgUI(Rc,'dang',{P:'dP',O:'dO',A:'dA'});
-led(Lc,ta,'Danh bạ lãnh đạo – Khối Chính quyền (tự điền người ký)');
+
+/* ---------- Danh bạ nhân sự & phòng chuyên môn (Chính quyền) ---------- */
+const DEF_DIR={
+ ttLead:[
+  {role:'GIÁM ĐỐC TRUNG TÂM',name:'',power:''},
+  {role:'PHÓ GIÁM ĐỐC TRUNG TÂM',name:'',power:'KT. GIÁM ĐỐC'},
+  {role:'PHÓ GIÁM ĐỐC TRUNG TÂM',name:'',power:'KT. GIÁM ĐỐC'}
+ ],
+ ttDepts:[
+  {dept:'Phòng Thông tin - Thống kê',role:'TRƯỞNG PHÒNG',name:''},
+  {dept:'Phòng Thông tin - Thống kê',role:'PHÓ TRƯỞNG PHÒNG',name:''},
+  {dept:'Phòng Quản trị - Tài chính',role:'TRƯỞNG PHÒNG',name:''},
+  {dept:'Phòng Phát triển hệ sinh thái đổi mới sáng tạo',role:'TRƯỞNG PHÒNG',name:''},
+  {dept:'Phòng Công nghệ sinh học',role:'TRƯỞNG PHÒNG',name:''},
+  {dept:'Phòng Vi mạch, bán dẫn và trí tuệ nhân tạo',role:'TRƯỞNG PHÒNG',name:''},
+  {dept:'Phòng Phát triển thị trường khoa học và công nghệ',role:'TRƯỞNG PHÒNG',name:''}
+ ],
+ specialists:[
+  {dept:'Phòng Thông tin - Thống kê',role:'Chuyên viên',name:''}
+ ],
+ soLead:[
+  {role:'GIÁM ĐỐC SỞ',name:'',power:''},
+  {role:'PHÓ GIÁM ĐỐC SỞ',name:'',power:'KT. GIÁM ĐỐC'},
+  {role:'PHÓ GIÁM ĐỐC SỞ',name:'',power:'KT. GIÁM ĐỐC'}
+ ],
+ soDepts:[
+  {name:'Văn phòng Sở',head:''},
+  {name:'Phòng Kế hoạch - Tài chính',head:''},
+  {name:'Phòng Quản lý Khoa học',head:''},
+  {name:'Phòng Quản lý Công nghệ và Chuyên ngành',head:''},
+  {name:'Phòng Chuyển đổi số',head:''},
+  {name:'Phòng Bưu chính, Viễn thông và An toàn thông tin',head:''},
+  {name:'Thanh tra Sở',head:''}
+ ]
+};
+const cloneDir=d=>JSON.parse(JSON.stringify(d));
+function ensureDir(){
+ const had=C.dir&&typeof C.dir==='object';
+ if(!had){
+  C.dir=cloneDir(DEF_DIR);
+  const old=(C.leaders||'').split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a[0]&&a[1]);
+  old.forEach(([role,name,power])=>{
+   const isPgd=/PHÓ/i.test(role);
+   const slot=C.dir.ttLead.find(x=>!x.name&&(/PHÓ/i.test(x.role)===isPgd));
+   if(slot){slot.role=role;slot.name=name;if(power)slot.power=power}
+   else C.dir.ttLead.push({role,name,power:power||''});
+  });
+ }
+ ['ttLead','ttDepts','specialists','soLead','soDepts'].forEach(k=>{
+  if(!Array.isArray(C.dir[k]))C.dir[k]=cloneDir(DEF_DIR[k]);
+ });
+ C.dir.ttLead=C.dir.ttLead.map(x=>({role:String(x.role||''),name:String(x.name||''),power:String(x.power||'')}));
+ C.dir.soLead=C.dir.soLead.map(x=>({role:String(x.role||''),name:String(x.name||''),power:String(x.power||'')}));
+ C.dir.ttDepts=C.dir.ttDepts.map(x=>({dept:String(x.dept||''),role:String(x.role||''),name:String(x.name||'')}));
+ C.dir.specialists=C.dir.specialists.map(x=>({dept:String(x.dept||''),role:String(x.role||'Chuyên viên'),name:String(x.name||'')}));
+ C.dir.soDepts=C.dir.soDepts.map(x=>({name:String(x.name||''),head:String(x.head||'')}));
+}
+ensureDir();
+
+function syncDirToLegacy(){
+ ensureDir();
+ C.leaders=C.dir.ttLead.filter(x=>x.role||x.name).map(x=>[x.role,x.name,x.power].join(' | ')).join('\n');
+ ta.value=C.leaders;
+}
+syncDirToLegacy();
+
+function getTtRooms(){
+ ensureDir();
+ const out=[],seen=new Set(),add=v=>{const s=String(v||'').trim();if(s&&!seen.has(s.toLowerCase())){seen.add(s.toLowerCase());out.push(s)}};
+ C.dir.ttDepts.forEach(x=>add(x.dept));
+ C.dir.specialists.forEach(x=>add(x.dept));
+ if(OT&&Array.isArray(OT.cq))OT.cq.filter(x=>x.p==='ttdmst').forEach(x=>add(x.s||sent(x.n)));
+ return out;
+}
+
+const DIR_TABS=[
+ ['ttLead','Lãnh đạo Trung tâm','+ Thêm lãnh đạo đơn vị','Chức vụ · Họ và tên · Quyền hạn ký (nếu có)'],
+ ['ttDepts','Trưởng/Phó phòng','+ Thêm trưởng/phó phòng','Phòng · Chức danh (Trưởng/Phó phòng) · Họ và tên'],
+ ['specialists','Chuyên viên','+ Thêm chuyên viên','Phòng · Chức danh (VD: Chuyên viên) · Họ và tên'],
+ ['soLead','Lãnh đạo Sở','+ Thêm lãnh đạo Sở','Chức vụ · Họ và tên · Quyền hạn ký (nếu có)'],
+ ['soDepts','Phòng chuyên môn Sở','+ Thêm phòng chuyên môn','Tên phòng chuyên môn Sở · Lãnh đạo phòng (tùy chọn)']
+];
+let dirTab='ttLead',_redrawDir=()=>{};
+
+function staffDirUI(box,t){
+ const h=document.createElement('b');h.style.cssText='display:block;margin-top:14px';h.textContent='Danh bạ nhân sự & phòng chuyên môn – Khối Chính quyền';
+ const sub=document.createElement('p');sub.className='mu';sub.style.margin='4px 0 6px';sub.textContent='Điền sẵn Ban Lãnh đạo Sở, Ban Lãnh đạo Trung tâm, Trưởng/Phó phòng, Chuyên viên và các phòng chuyên môn để chọn nhanh khi soạn thảo. Đơn vị khác có thể sửa, thêm hoặc xóa tùy ý.';
+ const dlRooms=document.createElement('datalist');dlRooms.id='dl-tt-depts';
+ const tabs=document.createElement('div');tabs.className='dir-tabs';
+ const w=document.createElement('div');w.className='dir-box';
+ box.append(h,sub,dlRooms,tabs,w,t);t.style.display='none';
+
+ const updRooms=()=>{dlRooms.innerHTML=getTtRooms().map(r=>`<option value="${at(r)}">`).join('')};
+ const cntOf=k=>k==='soDepts'?C.dir[k].filter(x=>x.name.trim()).length:C.dir[k].filter(x=>x.name.trim()).length+'/'+C.dir[k].length;
+
+ const draw=()=>{
+  ensureDir();updRooms();
+  tabs.innerHTML=DIR_TABS.map(([k,lbl])=>`<button type="button" class="btn${dirTab===k?' on':''}" data-dt="${k}">${esc(lbl)} (${cntOf(k)})</button>`).join('');
+  const meta=DIR_TABS.find(x=>x[0]===dirTab);
+  const arr=C.dir[dirTab];
+  let rowsHtml='';
+  if(dirTab==='ttLead'||dirTab==='soLead'){
+   rowsHtml=arr.map((r,i)=>`<div class="lr"><input maxlength="80" data-f="role" value="${at(r.role)}" placeholder="Chức vụ"><input maxlength="80" data-f="name" value="${at(r.name)}" placeholder="Họ và tên"><input maxlength="60" data-f="power" value="${at(r.power)}" placeholder="VD: KT. GIÁM ĐỐC"><button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('');
+  }else if(dirTab==='ttDepts'){
+   rowsHtml=arr.map((r,i)=>`<div class="lr"><input maxlength="100" list="dl-tt-depts" data-f="dept" value="${at(r.dept)}" placeholder="Tên phòng"><input maxlength="60" data-f="role" value="${at(r.role)}" placeholder="TRƯỞNG PHÒNG / PHÓ TRƯỞNG PHÒNG"><input maxlength="80" data-f="name" value="${at(r.name)}" placeholder="Họ và tên"><button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('');
+  }else if(dirTab==='specialists'){
+   rowsHtml=arr.map((r,i)=>`<div class="lr"><input maxlength="100" list="dl-tt-depts" data-f="dept" value="${at(r.dept)}" placeholder="Thuộc phòng"><input maxlength="60" data-f="role" value="${at(r.role)}" placeholder="Chuyên viên"><input maxlength="80" data-f="name" value="${at(r.name)}" placeholder="Họ và tên"><button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('');
+  }else{
+   rowsHtml=arr.map((r,i)=>`<div class="lr2"><input maxlength="120" data-f="name" value="${at(r.name)}" placeholder="Tên phòng chuyên môn của Sở"><input maxlength="80" data-f="head" value="${at(r.head)}" placeholder="Lãnh đạo phòng (tùy chọn)"><button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('');
+  }
+  w.innerHTML=`<div class="mu" style="font-size:12px;margin-bottom:4px">${esc(meta[3])} (tối đa 60 mục)</div>${rowsHtml||'<p class="mu">Chưa có mục nào.</p>'}<div class="bar" style="margin-top:8px"><button type="button" class="btn" data-add="1">${esc(meta[2])}</button><button type="button" class="btn" data-rst="1">Khôi phục mẫu TTĐMST & Sở KH&CN</button></div>`;
+ };
+
+ tabs.onclick=e=>{const b=e.target.closest('[data-dt]');if(!b)return;dirTab=b.dataset.dt;draw()};
+ w.addEventListener('input',e=>{
+  const inp=e.target.closest('input[data-f]');if(!inp)return;
+  const row=inp.closest('.lr,.lr2');if(!row)return;
+  const idx=[...w.querySelectorAll('.lr,.lr2')].indexOf(row);
+  if(idx<0||!C.dir[dirTab][idx])return;
+  C.dir[dirTab][idx][inp.dataset.f]=inp.value.replace(/\|/g,'');
+  if(dirTab==='ttLead')syncDirToLegacy();
+  fillLead();fillPtPickers();
+  const actTab=tabs.querySelector(`[data-dt="${dirTab}"]`);
+  const meta=DIR_TABS.find(x=>x[0]===dirTab);
+  if(actTab&&meta)actTab.textContent=`${meta[1]} (${cntOf(dirTab)})`;
+ });
+ w.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.x!=null){
+   const idx=+b.dataset.x,item=C.dir[dirTab][idx];if(!item)return;
+   const lbl=[item.role,item.name||item.dept].filter(Boolean).join(' – ')||'mục này';
+   if(!(await uiConfirm('Bạn có chắc muốn xóa “'+lbl+'” khỏi danh bạ?','Xác nhận xóa')))return;
+   C.dir[dirTab].splice(idx,1);
+   if(dirTab==='ttLead')syncDirToLegacy();
+   draw();fillLead();fillPtPickers();return;
+  }
+  if(b.dataset.add){
+   if(C.dir[dirTab].length>=60){msg('Mỗi nhóm tối đa 60 mục.');return}
+   const emptyRow=dirTab==='ttLead'?{role:'PHÓ GIÁM ĐỐC TRUNG TÂM',name:'',power:'KT. GIÁM ĐỐC'}:dirTab==='soLead'?{role:'PHÓ GIÁM ĐỐC SỞ',name:'',power:'KT. GIÁM ĐỐC'}:dirTab==='ttDepts'?{dept:getTtRooms()[0]||'',role:'PHÓ TRƯỞNG PHÒNG',name:''}:dirTab==='specialists'?{dept:getTtRooms()[0]||'',role:'Chuyên viên',name:''}:{name:'',head:''};
+   C.dir[dirTab].push(emptyRow);draw();return;
+  }
+  if(b.dataset.rst){
+   if(!(await uiConfirm('Bạn có chắc muốn khôi phục danh bạ nhân sự & phòng chuyên môn về mẫu mặc định của Trung tâm Đổi mới sáng tạo và Sở KH&CN? Các tên tự nhập sẽ bị đặt lại.','Xác nhận khôi phục mẫu','Khôi phục')))return;
+   C.dir=cloneDir(DEF_DIR);syncDirToLegacy();draw();fillLead();fillPtPickers();msg('Đã khôi phục mẫu danh bạ TTĐMST & Sở KH&CN.');
+  }
+ });
+ _redrawDir=draw;
+ draw();
+}
+
+function led(box,t,title){const h=document.createElement('b');h.style.cssText='display:block;margin-top:14px';h.textContent=title;const w=document.createElement('div');box.append(h,w,t);t.style.display='none';
+ const rows=()=>t.value.split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a.some(Boolean)),
+ coll=()=>[...w.querySelectorAll('.lr')].map(r=>[...r.querySelectorAll('input')].map(i=>i.value.replace(/\|/g,'').trim())),
+ save=a=>{t.value=a.map(r=>r.join(' | ')).join('\n');t.dispatchEvent(new Event('input',{bubbles:true}))},
+ draw=(a=rows())=>{w.innerHTML='<div class="mu" style="font-size:12px">Chức vụ · Họ và tên · Quyền hạn ký (nếu có, tối đa 30 người)</div>'+a.map((r,i)=>`<div class="lr">${[0,1,2].map(j=>`<input maxlength="80" value="${at(r[j]||'')}" placeholder="${['Chức vụ','Họ và tên','VD: KT. GIÁM ĐỐC'][j]}">`).join('')}<button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('')+'<button type="button" class="btn" data-a="1">+ Thêm người</button>'};
+ w.addEventListener('input',()=>save(coll()));
+ w.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const a=coll();
+  if(b.dataset.x!=null){const idx=+b.dataset.x,r=a[idx]||[];const lbl=[r[0],r[1]].filter(Boolean).join(' – ')||'mục này';if(!(await uiConfirm('Bạn có chắc muốn xóa “'+lbl+'” khỏi danh bạ lãnh đạo?','Xác nhận xóa')))return;a.splice(idx,1);save(a);draw()}
+  else{
+   if(a.length>=30){msg('Danh bạ lãnh đạo tối đa 30 người cho mỗi khối.');return}
+   if(a.some(r=>!r[0]&&!r[1])){msg('Hãy nhập thông tin vào dòng trống hiện có trước khi thêm người mới.');return}
+   a.push(['','','']);draw(a)
+  }});
+ draw()}
+
+staffDirUI(Lc,ta);
 const t2=ta.cloneNode(false);t2.setAttribute('data-c','leadersD');t2.value=C.leadersD;
 t2.addEventListener('input',()=>{C.leadersD=t2.value;fillLead()});
 led(Rc,t2,'Danh bạ lãnh đạo – Khối Đảng (Bí thư, Phó Bí thư…)');
+
+/* ---------- Chọn nhanh người ký & nhân sự Phiếu trình ---------- */
+let _leadMap=[];
+fillLead=function(){
+ ensureDir();
+ const sel=$('#lead'),dl=$('#dl-names');
+ const names=new Set();
+ const addName=v=>{const s=String(v||'').trim();if(s)names.add(s)};
+ C.dir.ttLead.forEach(x=>addName(x.name));
+ C.dir.soLead.forEach(x=>addName(x.name));
+ C.dir.ttDepts.forEach(x=>addName(x.name));
+ C.dir.specialists.forEach(x=>addName(x.name));
+ C.dir.soDepts.forEach(x=>addName(x.head));
+ (C.leadersD||'').split('\n').forEach(x=>{const p=x.split('|')[1];if(p)addName(p)});
+ if(dl)dl.innerHTML=[...names].map(n=>`<option value="${at(n)}">`).join('');
+
+ if(!sel)return;
+ if(mode==='dang'){
+  const ld=leaders();
+  _leadMap=ld.map(a=>({cv:a[0]||'',ten:a[1]||'',quyen:a[2]||''}));
+  sel.innerHTML='<option value="">— chọn —</option>'+_leadMap.map((x,i)=>`<option value="${i}">${esc(x.cv+(x.ten?' – '+x.ten:''))}</option>`).join('');
+  return;
+ }
+ _leadMap=[];
+ const grp=(title,items)=>{
+  const opts=items.map(it=>{const idx=_leadMap.length;_leadMap.push(it.data);return `<option value="${idx}">${esc(it.label)}</option>`}).join('');
+  return opts?`<optgroup label="${at(title)}">${opts}</optgroup>`:'';
+ };
+ const g1=grp('Ban Lãnh đạo Trung tâm / Đơn vị',C.dir.ttLead.filter(x=>x.role||x.name).map(x=>({label:x.role+(x.name?' – '+x.name:' (chưa nhập tên)'),data:{cv:x.role,ten:x.name,quyen:x.power}})));
+ const g2=grp('Ban Lãnh đạo Sở / Cơ quan cấp trên',C.dir.soLead.filter(x=>x.role||x.name).map(x=>({label:x.role+(x.name?' – '+x.name:' (chưa nhập tên)'),data:{cv:x.role,ten:x.name,quyen:x.power}})));
+ const g3=grp('Trưởng / Phó các phòng',C.dir.ttDepts.filter(x=>x.name||x.dept).map(x=>{
+  const cv=/^TRƯỞNG/i.test(x.role)?`${x.role.toUpperCase()} ${x.dept.toUpperCase()}`:`${(x.role||'LÃNH ĐẠO').toUpperCase()} ${x.dept.toUpperCase()}`;
+  return{label:`${x.role||'Trưởng/Phó'} ${x.dept}${x.name?' – '+x.name:' (chưa nhập tên)'}`,data:{cv,ten:x.name,quyen:'TL. GIÁM ĐỐC'}};
+ }));
+ sel.innerHTML='<option value="">— chọn từ danh bạ —</option>'+g1+g2+g3;
+};
+$('#lead').onchange=()=>{const v=$('#lead').value;if(v==='')return;const it=_leadMap[+v];if(!it)return;S.cv=it.cv;S.ten=it.ten||'';S.quyen=it.quyen||'';sync();render()};
+
+let _ptOptMap={};
+function fillPtPickers(){
+ ensureDir();
+ const setSel=(id,placeholder,groups,emptyHint)=>{
+  const el=$(id);if(!el)return;
+  _ptOptMap[id]=[];
+  let html=`<option value="">${esc(placeholder)}</option>`,count=0;
+  groups.forEach(g=>{
+   const opts=g.items.filter(Boolean).map(it=>{const idx=_ptOptMap[id].length;_ptOptMap[id].push(it.val);count++;return `<option value="${idx}">${esc(it.label)}</option>`}).join('');
+   if(opts)html+=g.title?`<optgroup label="${at(g.title)}">${opts}</optgroup>`:opts;
+  });
+  if(!count&&emptyHint)html+=`<option value="" disabled>${esc(emptyHint)}</option>`;
+  el.innerHTML=html;
+ };
+ const spFilled=C.dir.specialists.filter(x=>x.name.trim());
+ const dpFilled=C.dir.ttDepts.filter(x=>x.name.trim());
+ const ttFilled=C.dir.ttLead.filter(x=>x.name.trim());
+ const soFilled=C.dir.soLead.filter(x=>x.name.trim());
+ const rooms=getTtRooms();
+ const soRooms=C.dir.soDepts.filter(x=>x.name.trim());
+
+ setSel('#pt-pick-nt','— Chọn nhanh Người trình (Chuyên viên) —',[
+  {title:'Chuyên viên',items:spFilled.map(x=>({label:`${x.name}${x.dept?' ('+x.dept+')':''}`,val:{name:x.name,dept:x.dept}}))},
+  {title:'Trưởng / Phó phòng',items:dpFilled.map(x=>({label:`${x.name} (${x.role} – ${x.dept})`,val:{name:x.name,dept:x.dept}}))}
+ ],'Chưa có tên chuyên viên – nhập ở tab 5. Cấu hình đơn vị');
+
+ setSel('#pt-pick-ldp','— Chọn nhanh Trưởng / Phó phòng —',[
+  {title:'Trưởng / Phó các phòng',items:dpFilled.map(x=>({label:`${x.role} ${x.dept} – ${x.name}`,val:{name:x.name,role:x.role,dept:x.dept}}))}
+ ],'Chưa có tên Trưởng/Phó phòng – nhập ở tab 5. Cấu hình đơn vị');
+
+ setSel('#pt-pick-dvn','— Chọn nhanh phòng trình —',[
+  {title:'Các phòng thuộc Trung tâm',items:rooms.map(r=>({label:r,val:r}))}
+ ]);
+
+ setSel('#pt-pick-ph','+ Thêm phòng liên quan thuộc Trung tâm',[
+  {title:'Các phòng thuộc Trung tâm',items:rooms.map(r=>({label:r,val:r}))}
+ ]);
+
+ setSel('#pt-pick-gd','— Chọn nhanh Giám đốc / Lãnh đạo Trung tâm —',[
+  {title:'Ban Lãnh đạo Trung tâm',items:ttFilled.map(x=>({label:`${x.role} – ${x.name}`,val:x.name}))}
+ ],'Chưa có tên Lãnh đạo Trung tâm – nhập ở tab 5. Cấu hình đơn vị');
+
+ setSel('#pt-pick-pgd','+ Chọn nhanh Phó Giám đốc Trung tâm',[
+  {title:'Ban Lãnh đạo Trung tâm',items:ttFilled.slice().sort((a,b)=>(/PHÓ/i.test(b.role)?1:0)-(/PHÓ/i.test(a.role)?1:0)).map(x=>({label:`${x.role} – ${x.name}`,val:x.name}))}
+ ],'Chưa có tên Phó Giám đốc – nhập ở tab 5. Cấu hình đơn vị');
+
+ setSel('#pt-pick-soph','+ Thêm phòng chuyên môn của Sở',[
+  {title:'Các phòng chuyên môn Sở KH&CN',items:soRooms.map(x=>({label:x.name+(x.head?' ('+x.head+')':''),val:x.name}))}
+ ]);
+
+ setSel('#pt-pick-sopgd','+ Chọn nhanh Phó Giám đốc Sở',[
+  {title:'Ban Lãnh đạo Sở',items:soFilled.slice().sort((a,b)=>(/PHÓ/i.test(b.role)?1:0)-(/PHÓ/i.test(a.role)?1:0)).map(x=>({label:`${x.role} – ${x.name}`,val:x.name}))}
+ ],'Chưa có tên Lãnh đạo Sở – nhập ở tab 5. Cấu hình đơn vị');
+
+ setSel('#pt-pick-sogd','— Chọn nhanh Giám đốc Sở —',[
+  {title:'Ban Lãnh đạo Sở',items:soFilled.map(x=>({label:`${x.role} – ${x.name}`,val:x.name}))}
+ ],'Chưa có tên Giám đốc Sở – nhập ở tab 5. Cấu hình đơn vị');
+}
+
+const appendLine=(cur,val)=>{const lines=(cur||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!lines.some(l=>l.toLowerCase()===val.toLowerCase()))lines.push(val);return lines.join('\n')};
+const bindSel=(id,fn)=>{const el=$(id);if(!el)return;el.onchange=()=>{if(el.value==='')return;const v=(_ptOptMap[id]||[])[+el.value];if(v==null)return;fn(v);sync();vis();render()}};
+bindSel('#pt-pick-nt',v=>{S.nt=v.name;if(v.dept)S.dvn=v.dept.replace(/^Phòng\s+/i,'')});
+bindSel('#pt-pick-ldp',v=>{S.ldp=v.name;S.ldpRole=/^(TRƯỞNG PHÒNG|PHÓ TRƯỞNG PHÒNG)$/i.test(v.role)?v.role.toUpperCase():'';if(!S.dvn&&v.dept)S.dvn=v.dept.replace(/^Phòng\s+/i,'')});
+bindSel('#pt-pick-dvn',v=>{S.dvn=String(v).replace(/^Phòng\s+/i,'')});
+bindSel('#pt-pick-ph',v=>{S.phOn=true;S.ph=appendLine(S.ph,String(v).replace(/^Phòng\s+/i,''));$('#pt-pick-ph').value=''});
+bindSel('#pt-pick-gd',v=>{S.gd=v});
+bindSel('#pt-pick-pgd',v=>{S.pgdOn=true;S.pgd=appendLine(S.pgd,v);$('#pt-pick-pgd').value=''});
+bindSel('#pt-pick-soph',v=>{S.soPhOn=true;S.soPh=appendLine(S.soPh,v);$('#pt-pick-soph').value=''});
+bindSel('#pt-pick-sopgd',v=>{S.soPgdOn=true;S.soPgd=appendLine(S.soPgd,v);$('#pt-pick-sopgd').value=''});
+bindSel('#pt-pick-sogd',v=>{S.soGdOn=true;S.soGd=v});
+
+const _cfiOrig=$('#cfi')&&$('#cfi').onclick;
+if(_cfiOrig)$('#cfi').onclick=()=>{_cfiOrig();ensureDir();syncDirToLegacy();_redrawDir();fillLead();fillPtPickers()};
+const _usetplOrig=$('#usetpl')&&$('#usetpl').onclick;
+if(_usetplOrig)$('#usetpl').onclick=()=>{_usetplOrig();if(kind()=='pt'){ensureDir();const gd=C.dir.ttLead.find(x=>/^GIÁM ĐỐC/i.test(x.role)&&x.name);const pgd=C.dir.ttLead.find(x=>/PHÓ GIÁM ĐỐC/i.test(x.role)&&x.name);if(gd)S.gd=gd.name;if(pgd)S.pgd=pgd.name;sync();render()}};
+fillPtPickers();
 
 /* ---------- Tra cứu và Lịch sử theo khối ---------- */
 let kbF='cq',hsF='cq',hsFolder='__all__';
