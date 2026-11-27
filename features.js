@@ -160,6 +160,7 @@
       if (el.style.textIndent) el.style.textIndent = fmt.indentCm + 'cm';
       if (el.style.lineHeight) el.style.lineHeight = String(fmt.lineHeight);
     });
+    if (typeof scheduleFitPaper === 'function') scheduleFitPaper();
   };
 
   const _baseDocXml = docXml;
