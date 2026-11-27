@@ -8,10 +8,18 @@
   const css = document.createElement('style');
   css.textContent = `
   .opt-grid{display:grid;grid-template-columns:minmax(380px,520px) 1fr;gap:16px}
-  .dg-grid{display:grid;grid-template-columns:1.4fr minmax(350px,460px);gap:16px}
-  @media(max-width:960px){.opt-grid,.dg-grid{grid-template-columns:1fr}}
+  .dg-grid{display:grid;grid-template-columns:1.2fr minmax(430px,540px);gap:16px}
+  @media(max-width:1020px){.opt-grid,.dg-grid{grid-template-columns:1fr}}
   .dg-grid .chips{gap:6px;margin:6px 0 8px}
   .dg-grid .chip{padding:5px 10px;font-size:12.5px}
+  .dg-grid .kpi-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dg-grid .kpi .mu{white-space:nowrap;font-size:12.5px}
+  .mar-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .mar-grid span{display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
+  .mar-grid input{padding:6px 7px;text-align:center}
+  .ai-ext{border-top:1px dashed var(--bd);margin-top:10px;padding-top:10px}
+  .ai-ext-links{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .ai-ext-links a{text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;padding:6px 10px}
   .drop{border:2px dashed var(--bd);border-radius:12px;padding:22px 16px;text-align:center;background:var(--bg);cursor:pointer;transition:.15s border-color,.15s background}
   .drop.ov{border-color:var(--pr);background:rgba(30,58,138,.08)}
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
@@ -176,7 +184,7 @@
   };
 
   /* ========================================================================
-   * PHẦN 2: PHÂN TÍCH & TỐI ƯU HÓA FILE UPLOAD (.docx / .txt / .html)
+   * PHẦN 2: PHÂN TÍCH & TỐI ƯU HÓA FILE UPLOAD (.docx / .pdf)
    * ======================================================================== */
   let lastAnalysis = null;
 
@@ -410,7 +418,10 @@
   async function parseUploadedFile(file) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     if (ext === 'doc') {
-      throw new Error('Định dạng .doc cũ chưa hỗ trợ trực tiếp trên trình duyệt. Hãy mở file trong Word và chọn Lưu dạng .docx rồi tải lại.');
+      throw new Error('Định dạng .doc cũ chưa hỗ trợ trực tiếp trên trình duyệt. Hãy mở file trong Word và chọn Lưu dạng .docx hoặc .pdf rồi tải lại.');
+    }
+    if (ext !== 'docx' && ext !== 'pdf') {
+      throw new Error('Chỉ hỗ trợ file .docx (Word) hoặc .pdf (PDF).');
     }
     if (ext === 'docx') {
       if (typeof JSZip === 'undefined') throw new Error('Chưa tải được JSZip để đọc file .docx.');
@@ -463,7 +474,6 @@
         }
       });
 
-      // Fallback font/size từ styles.xml
       if (stylesDoc) {
         const defRPr = stylesDoc.getElementsByTagName('w:rPrDefault')[0];
         if (defRPr) {
@@ -483,31 +493,62 @@
         top: tw2mm(pgMar.getAttribute('w:top')) || 20,
         bottom: tw2mm(pgMar.getAttribute('w:bottom')) || 20,
         left: tw2mm(pgMar.getAttribute('w:left')) || 30,
-        right: tw2mm(pgMar.getAttribute('w:right')) || 15
+        right: tw2mm(pgMar.getAttribute('w:right')) || 20
       } : null;
 
       return analyzeExtractedData(lines, {
         format: 'DOCX',
         fontFamily: topKey(fontCount) || 'Times New Roman',
         fontSizePt: Number(topKey(sizeCount)) || 14,
-        lineHeight: Number(topKey(lineSpCount)) || 1.3,
+        lineHeight: Number(topKey(lineSpCount)) || 1.0,
         indentCm: Number(topKey(indentCount)) || 1.0,
         marginsMm
       }, file.name);
     }
 
-    const raw = await file.text();
-    let lines;
-    if (ext === 'html' || ext === 'htm') {
-      const doc = new DOMParser().parseFromString(raw, 'text/html');
-      lines = (doc.body ? doc.body.innerText : raw).split('\n').map(x => x.trim()).filter(Boolean);
-    } else {
-      lines = raw.split('\n').map(x => x.trim()).filter(Boolean);
+    if (typeof pdfjsLib === 'undefined') {
+      throw new Error('Chưa tải được thư viện đọc PDF (pdf.js). Hãy kiểm tra kết nối mạng và thử lại.');
     }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const lines = [];
+    const sizeCount = {};
+    const fontCount = {};
+
+    for (let pno = 1; pno <= pdf.numPages; pno++) {
+      const page = await pdf.getPage(pno);
+      const tc = await page.getTextContent();
+      const styles = tc.styles || {};
+      const rows = new Map();
+      for (const item of tc.items) {
+        const str = (item.str || '').replace(/\s+/g, ' ');
+        if (!str.trim()) continue;
+        const y = Math.round((item.transform?.[5] || 0) / 3) * 3;
+        const x = item.transform?.[4] || 0;
+        if (!rows.has(y)) rows.set(y, []);
+        rows.get(y).push({ x, str });
+
+        const hPt = Math.round(Math.hypot(item.transform?.[0] || 0, item.transform?.[1] || 0));
+        if (hPt >= 10 && hPt <= 20) sizeCount[hPt] = (sizeCount[hPt] || 0) + str.length;
+        const ff = styles[item.fontName]?.fontFamily;
+        if (ff) fontCount[ff] = (fontCount[ff] || 0) + str.length;
+      }
+      const ys = [...rows.keys()].sort((a, b) => b - a);
+      for (const y of ys) {
+        const parts = rows.get(y).sort((a, b) => a.x - b.x).map(p => p.str.trim()).filter(Boolean);
+        const line = parts.join(' ').replace(/\s+/g, ' ').trim();
+        if (line) lines.push(line);
+      }
+    }
+    if (!lines.length) {
+      throw new Error('File PDF không có lớp văn bản (có thể là bản scan ảnh). Hãy dùng PDF có chữ chọn được hoặc file .docx.');
+    }
+    const topKey = obj => Object.entries(obj).sort((a, b) => b[1] - a[1])[0]?.[0];
     return analyzeExtractedData(lines, {
-      format: ext.toUpperCase() || 'TXT',
-      fontFamily: null,
-      fontSizePt: null,
+      format: 'PDF',
+      fontFamily: topKey(fontCount) || null,
+      fontSizePt: Number(topKey(sizeCount)) || null,
       lineHeight: null,
       indentCm: null,
       marginsMm: null
@@ -569,11 +610,13 @@
             </select>
           </div>
           <div><label>Lề trang A4 (mm: trên/dưới/trái/phải)</label>
-            <select id="pf-mar">
-              <option value="nd30"${p.marginPreset === 'nd30' ? ' selected' : ''}>Chuẩn (20 / 20 / 30 / 20)</option>
-              <option value="thoang"${p.marginPreset === 'thoang' ? ' selected' : ''}>Hẹp phải (20 / 20 / 30 / 15)</option>
-              <option value="max"${p.marginPreset === 'max' ? ' selected' : ''}>Lề trên/dưới tối đa (25 / 25 / 35 / 20)</option>
-            </select>
+            <div class="mar-grid">
+              <div><span>Trên</span><input type="number" id="pf-mar-top" min="5" max="50" value="${Number(p.marginsMm?.top ?? 20)}"></div>
+              <div><span>Dưới</span><input type="number" id="pf-mar-bottom" min="5" max="50" value="${Number(p.marginsMm?.bottom ?? 20)}"></div>
+              <div><span>Trái</span><input type="number" id="pf-mar-left" min="5" max="50" value="${Number(p.marginsMm?.left ?? 30)}"></div>
+              <div><span>Phải</span><input type="number" id="pf-mar-right" min="5" max="50" value="${Number(p.marginsMm?.right ?? 20)}"></div>
+            </div>
+            <div style="margin-top:6px"><button type="button" class="btn" id="pf-mar-std" style="padding:4px 9px;font-size:12px">Chuẩn (20/20/30/20)</button></div>
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:10px">
@@ -588,9 +631,9 @@
 
       <div class="card">
         <b>Tải lên file văn bản để phân tích & tối ưu thể thức</b>
-        <p class="mu" style="margin:4px 0 10px">Hỗ trợ <b>.docx</b> (Word), <b>.txt</b>, <b>.html</b>. Xử lý trực tiếp trên trình duyệt, không gửi nội dung văn bản lên máy chủ.</p>
+        <p class="mu" style="margin:4px 0 10px">Hỗ trợ <b>.docx</b> (Word), <b>.pdf</b> (PDF). Xử lý trực tiếp trên trình duyệt, không gửi nội dung văn bản lên máy chủ.</p>
         <div class="drop" id="opt-drop">
-          <input type="file" id="opt-file" accept=".docx,.txt,.md,.html,.htm" style="display:none">
+          <input type="file" id="opt-file" accept=".docx,.pdf" style="display:none">
           <b>Kéo thả file văn bản vào đây hoặc bấm để chọn file</b>
           <div class="mu" style="margin-top:4px;font-size:12px">Hệ thống tự nhận diện Khối, Loại văn bản, Căn cứ, Nơi nhận, Lề, Font và tối ưu theo hồ sơ "${esc(p.name)}"</div>
         </div>
@@ -602,7 +645,7 @@
   }
 
   function renderAnalysisHtml(a, eff) {
-    if (!a) return '<p class="mu">Chưa có file nào được tải lên. Hãy chọn một file .docx hoặc .txt để bắt đầu tối ưu hóa thể thức.</p>';
+    if (!a) return '<p class="mu">Chưa có file nào được tải lên. Hãy chọn một file .docx hoặc .pdf để bắt đầu tối ưu hóa thể thức.</p>';
     const m = a.meta;
     const modeLabel = a.detectedMode === 'nn' ? 'Khối Chính quyền (NĐ 30/2020)' : 'Khối Đảng (HD 05-HD/VPTW)';
     const typeObj = (T[a.detectedMode].find(t => t[0] === a.detectedType) || T[a.detectedMode][0]);
@@ -616,7 +659,7 @@
       <table class="tbl-cmp">
         <thead><tr><th>Tiêu chí thể thức</th><th>File gốc tải lên</th><th>Tối ưu theo chuẩn & cá nhân</th></tr></thead>
         <tbody>
-          <tr><td>Phông chữ</td><td>${esc(m.fontFamily || 'Chưa rõ (TXT)')}</td><td>Times New Roman</td></tr>
+          <tr><td>Phông chữ</td><td>${esc(m.fontFamily || `Chưa rõ (${m.format || 'PDF'})`)}</td><td>Times New Roman</td></tr>
           <tr><td>Cỡ chữ nội dung</td><td>${m.fontSizePt ? m.fontSizePt + ' pt' : 'Chưa rõ'}</td><td>${eff.fontSizePt} pt</td></tr>
           <tr><td>Giãn dòng / Thụt đầu dòng</td><td>${m.lineHeight ? m.lineHeight + ' / ' + (m.indentCm ?? '?') + ' cm' : 'Chưa rõ'}</td><td>${eff.lineHeight} / ${eff.indentCm} cm</td></tr>
           <tr><td>Lề A4 (Trên/Dưới/Trái/Phải)</td><td>${m.marginsMm ? `${m.marginsMm.top}/${m.marginsMm.bottom}/${m.marginsMm.left}/${m.marginsMm.right} mm` : 'Chưa rõ'}</td><td>${eff.marginsMm.top}/${eff.marginsMm.bottom}/${eff.marginsMm.left}/${eff.marginsMm.right} mm</td></tr>
@@ -672,6 +715,10 @@
     };
 
     const readFormToProfile = () => {
+      const clampMm = (v, d) => {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) ? Math.min(50, Math.max(5, n)) : d;
+      };
       p.name = q('#pf-name').value.trim() || 'Hồ sơ cá nhân';
       p.deptAbbr = q('#pf-dv').value.trim();
       p.defaultSignerRole = q('#pf-cv').value.trim();
@@ -679,15 +726,27 @@
       p.fontSizePt = Number(q('#pf-sz').value) || 14;
       p.lineHeight = Number(q('#pf-lh').value) || 1.0;
       p.indentCm = Number(q('#pf-ind').value);
-      p.marginPreset = q('#pf-mar').value;
-      p.marginsMm = p.marginPreset === 'thoang'
-        ? { top: 20, bottom: 20, left: 30, right: 15 }
-        : p.marginPreset === 'max'
-          ? { top: 25, bottom: 25, left: 35, right: 20 }
-          : { top: 20, bottom: 20, left: 30, right: 20 };
+      p.marginPreset = 'custom';
+      p.marginsMm = {
+        top: clampMm(q('#pf-mar-top')?.value, 20),
+        bottom: clampMm(q('#pf-mar-bottom')?.value, 20),
+        left: clampMm(q('#pf-mar-left')?.value, 30),
+        right: clampMm(q('#pf-mar-right')?.value, 20)
+      };
       p.autoNormalizeText = q('#pf-norm').checked;
       saveProfiles();
       refreshEditorProfileSelect();
+    };
+
+    const marStdBtn = q('#pf-mar-std');
+    if (marStdBtn) marStdBtn.onclick = () => {
+      if (q('#pf-mar-top')) q('#pf-mar-top').value = 20;
+      if (q('#pf-mar-bottom')) q('#pf-mar-bottom').value = 20;
+      if (q('#pf-mar-left')) q('#pf-mar-left').value = 30;
+      if (q('#pf-mar-right')) q('#pf-mar-right').value = 20;
+      readFormToProfile();
+      render();
+      msg('Đã đặt lề trang A4 về chuẩn (20/20/30/20 mm).');
     };
 
     const saveBtn = q('#pf-save');
@@ -947,7 +1006,7 @@
         </div>
 
         <label style="margin-top:6px">3. Góp ý thêm (tùy chọn – không bắt buộc)</label>
-        <input id="dg-note" maxlength="500" value="${at(rvState.note)}" placeholder="Không bắt buộc phải nhập...">
+        <input id="dg-note" maxlength="500" value="${at(rvState.note)}">
         <div class="bar" style="margin-top:12px">
           <button type="button" class="btn p" id="dg-submit">Gửi đánh giá</button>
           <button type="button" class="btn" id="dg-reset">Làm lại</button>
@@ -1106,6 +1165,61 @@
     return data;
   }
 
+  function buildPersonalAiPrompt() {
+    const rawInfo = (q('#ai-raw')?.value || '').trim();
+    const editStyle = q('#ai-style')?.value || 'polish';
+    const std = mode === 'dang' ? 'Hướng dẫn 05-HD/VPTW (Khối Đảng)' : 'Nghị định 30/2020/NĐ-CP (Khối Chính quyền)';
+    const styleNote = editStyle === 'draft'
+      ? 'Hãy soạn thảo hoàn chỉnh thành văn bản hành chính chuẩn mực từ ghi chú thô.'
+      : editStyle === 'concise'
+        ? 'Hãy biên tập lại ngắn gọn, cô đọng, súc tích hơn và loại bỏ ý lặp.'
+        : 'Hãy biên tập lại câu từ hành chính mượt mà, chặt chẽ, loại bỏ ý trùng lặp.';
+    return [
+      `Bạn là chuyên gia văn thư hành chính Việt Nam. ${styleNote}`,
+      `Chuẩn thể thức: ${std}.`,
+      `Cơ quan ban hành: ${(mode === 'dang' ? C.dO : C.nO) || 'Trung tâm Đổi mới sáng tạo'}.`,
+      `Loại văn bản: ${name(S.type)} (${S.type}).`,
+      rawInfo ? `\nThông tin gốc / ghi chú:\n${rawInfo}` : '',
+      S.ty ? `\nTrích yếu hiện tại:\n${S.ty}` : '',
+      S.cc ? `\nCăn cứ hiện tại:\n${S.cc}` : '',
+      S.nd ? `\nNội dung nháp hiện tại:\n${S.nd}` : '',
+      `\nHãy trả về đúng định dạng sau (không thêm lời giải thích thừa):`,
+      `Trích yếu: <trích yếu ngắn gọn>`,
+      `Căn cứ:\n<mỗi dòng một căn cứ, nếu có>`,
+      `Nội dung:\n<toàn bộ phần nội dung đã hoàn thiện, giữ nguyên cấu trúc Điều/khoản/mục nếu có>`
+    ].filter(Boolean).join('\n');
+  }
+
+  function parseExternalAiText(text) {
+    const t = String(text || '').trim();
+    if (!t) return null;
+    const jsonMatch = t.match(/\{[\s\S]*"nd"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const obj = JSON.parse(jsonMatch[0]);
+        return {
+          ty: typeof obj.ty === 'string' ? obj.ty.trim() : '',
+          cc: Array.isArray(obj.cc) ? obj.cc.map(x => String(x).trim()).filter(Boolean) : [],
+          nd: typeof obj.nd === 'string' ? obj.nd.trim() : ''
+        };
+      } catch (_) {}
+    }
+    let ty = '', cc = [], nd = '';
+    const tyM = t.match(/(?:^|\n)\s*(?:Trích yếu|V\/v)\s*:\s*(.+)/i);
+    if (tyM) ty = tyM[1].trim();
+    const ndIdx = t.search(/(?:^|\n)\s*Nội dung(?:\s+văn bản)?\s*:/i);
+    const ccIdx = t.search(/(?:^|\n)\s*Căn cứ(?:\s+ban hành)?\s*:/i);
+    if (ndIdx >= 0) {
+      nd = t.slice(ndIdx).replace(/^\s*Nội dung(?:\s+văn bản)?\s*:\s*/i, '').trim();
+      if (ccIdx >= 0 && ccIdx < ndIdx) {
+        cc = t.slice(ccIdx, ndIdx).replace(/^\s*Căn cứ(?:\s+ban hành)?\s*:\s*/i, '').split('\n').map(x => x.trim()).filter(Boolean);
+      }
+    } else {
+      nd = t;
+    }
+    return { ty, cc, nd };
+  }
+
   (function mountAiBoxInEditor() {
     const card = q('#soan .grid .card');
     if (!card) return;
@@ -1123,7 +1237,7 @@
         <textarea id="ai-raw" style="min-height:86px" placeholder="VD: Họp giao ban tuần tới sáng thứ Hai lúc 8h tại phòng họp số 2, đánh giá tiến độ chuyển đổi số quý II, các phòng báo cáo kết quả, hoàn thành trước 15/5..."></textarea>
         <div class="row" style="margin-top:6px">
           <div>
-            <label style="margin-top:4px">Công cụ AI</label>
+            <label style="margin-top:4px">Công cụ AI máy chủ</label>
             <select id="ai-provider"></select>
           </div>
           <div>
@@ -1140,6 +1254,23 @@
         </div>
         <div id="ai-err"></div>
         <div id="ai-out" style="display:none"></div>
+
+        <div class="ai-ext">
+          <b style="font-size:12.5px">Hoặc kết nối trực tiếp bằng tài khoản AI của bạn (không cần API Key máy chủ)</b>
+          <p class="mu" style="margin:3px 0 6px;font-size:12px">Bước 1: Sao chép yêu cầu &amp; nội dung → Bước 2: Chọn công cụ AI của bạn để mở và dán → Bước 3: Dán kết quả vào ô dưới.</p>
+          <div class="ai-ext-links">
+            <button type="button" class="btn" id="ai-copy-prompt">📋 Sao chép yêu cầu &amp; nội dung</button>
+            <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT ↗</a>
+            <a class="btn" href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Google Gemini ↗</a>
+            <a class="btn" href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude ↗</a>
+            <a class="btn" href="https://copilot.microsoft.com/" target="_blank" rel="noopener noreferrer">Copilot ↗</a>
+            <a class="btn" href="https://grok.com/" target="_blank" rel="noopener noreferrer">Grok ↗</a>
+          </div>
+          <textarea id="ai-paste" style="min-height:70px;margin-top:6px" placeholder="Dán kết quả từ ChatGPT / Gemini / Claude vào đây rồi bấm Áp dụng..."></textarea>
+          <div class="bar" style="margin:6px 0 0">
+            <button type="button" class="btn p" id="ai-paste-apply">📥 Áp dụng kết quả đã dán</button>
+          </div>
+        </div>
       </div>
     `;
     if (ndLabel) card.insertBefore(box, ndLabel);
@@ -1152,6 +1283,38 @@
     const runBtn = q('#ai-run');
     const errEl = q('#ai-err');
     const outEl = q('#ai-out');
+
+    const copyPromptBtn = q('#ai-copy-prompt');
+    if (copyPromptBtn) copyPromptBtn.onclick = async () => {
+      const promptTxt = buildPersonalAiPrompt();
+      try {
+        await navigator.clipboard.writeText(promptTxt);
+        msg('Đã sao chép yêu cầu & nội dung! Hãy chọn ChatGPT / Gemini / Claude bên cạnh rồi dán (Ctrl+V).');
+      } catch (_) {
+        const ta = q('#ai-paste');
+        if (ta) {
+          ta.value = promptTxt;
+          ta.select();
+          try { document.execCommand('copy'); } catch (__) {}
+        }
+        msg('Đã đưa yêu cầu vào ô bên dưới — hãy nhấn Ctrl+C để sao chép rồi mở công cụ AI.');
+      }
+    };
+
+    const pasteApplyBtn = q('#ai-paste-apply');
+    if (pasteApplyBtn) pasteApplyBtn.onclick = () => {
+      const parsed = parseExternalAiText(q('#ai-paste')?.value || '');
+      if (!parsed || (!parsed.nd && !parsed.ty)) {
+        msg('Hãy dán nội dung kết quả từ ChatGPT / Gemini / Claude trước khi áp dụng.');
+        return;
+      }
+      if (parsed.ty) S.ty = parsed.ty;
+      if (parsed.cc && parsed.cc.length) S.cc = parsed.cc.join('\n');
+      if (parsed.nd) S.nd = parsed.nd;
+      sync();
+      render();
+      msg('Đã áp dụng kết quả AI vào bản soạn thảo.');
+    };
 
     if (runBtn) runBtn.onclick = async () => {
       errEl.innerHTML = '';
@@ -1219,7 +1382,7 @@
         };
         q('#ai-close').onclick = () => { outEl.style.display = 'none'; };
       } catch (e) {
-        errEl.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối máy chủ AI.')}</div>`;
+        errEl.innerHTML = `<div class="ai-err">${esc(e.message || 'Không thể kết nối máy chủ AI.')} <span style="color:var(--tx)">Bạn có thể dùng mục <b>"Hoặc kết nối trực tiếp bằng tài khoản AI của bạn"</b> ngay bên dưới mà không cần cấu hình máy chủ.</span></div>`;
       } finally {
         runBtn.disabled = false;
         runBtn.textContent = orig;
