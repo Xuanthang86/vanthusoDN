@@ -130,14 +130,16 @@
 
   function applyProfileDefaultsToDraft() {
     const p = activeProfile();
-    if (p.deptAbbr) S.dv = p.deptAbbr;
-    if (p.deptFull) S.dvn = p.deptFull;
+    if (mode === 'nn') {
+      if (p.deptAbbr) S.dv = p.deptAbbr;
+      if (p.deptFull) S.dvn = p.deptFull;
+      if (S.dv && S.nn) {
+        S.nn = S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m, (_, b) => `${b} ${S.dv}.`);
+      }
+    }
     if (p.defaultSignerRole && !S.cv) S.cv = p.defaultSignerRole;
     if (p.defaultSignerName && !S.ten) S.ten = p.defaultSignerName;
     if (p.defaultSignerPower && !S.quyen) S.quyen = p.defaultSignerPower;
-    if (S.dv && S.nn) {
-      S.nn = S.nn.replace(/^(-\s*Lưu:\s*VT,)[^\n]*$/m, (_, b) => `${b} ${S.dv}.`);
-    }
     sync();
     render();
   }
@@ -369,7 +371,13 @@
     });
 
     let cleanBody = normalizeTextRules(bodyLines.join('\n'), isState);
-    if (cleanBody && !/[.\/]\s*$/.test(cleanBody)) cleanBody += './.';
+    if (cleanBody) {
+      if (cleanBody.endsWith('.') && !cleanBody.endsWith('..') && !cleanBody.endsWith('./.')) {
+        cleanBody = cleanBody.slice(0, -1) + './.';
+      } else if (!/[.\/…]\s*$/.test(cleanBody)) {
+        cleanBody += './.';
+      }
+    }
 
     const dvUse = prof.deptAbbr || S.dv || C.dv || 'TTTK';
     const sep = isState ? ';' : ',';
@@ -703,8 +711,9 @@
       msg('Đã tạo hồ sơ mới.');
     };
     const delBtn = q('#pf-del');
-    if (delBtn) delBtn.onclick = () => {
+    if (delBtn) delBtn.onclick = async () => {
       if (PF.items.length <= 1) return;
+      if (!(await uiConfirm(`Bạn có chắc muốn xóa hồ sơ cá nhân "${p.name}"?`, 'Xác nhận xóa hồ sơ'))) return;
       PF.items = PF.items.filter(x => x.id !== p.id);
       PF.activeId = PF.items[0].id;
       saveProfiles();
@@ -780,8 +789,8 @@
 
     const toEd = q('#opt-to-editor');
     if (toEd && lastAnalysis) toEd.onclick = () => {
-      Object.assign(S, lastAnalysis.draft);
       setMode(lastAnalysis.detectedMode);
+      Object.assign(S, lastAnalysis.draft);
       sync();
       vis();
       render();
@@ -818,11 +827,11 @@
         populateProviderSelect(q('#ai-provider'));
         populateProviderSelect(q('#opt-ai-provider'));
         renderAiConnections();
+        setMode(lastAnalysis.detectedMode);
         Object.assign(S, d);
         if (res.ty) S.ty = res.ty;
         if (res.cc && res.cc.length) S.cc = res.cc.join('\n');
         if (res.nd) S.nd = res.nd;
-        setMode(lastAnalysis.detectedMode);
         sync();
         vis();
         render();
@@ -1302,10 +1311,12 @@
       try {
         const obj = JSON.parse(jsonSlice[0]);
         if (obj && (typeof obj.nd === 'string' || typeof obj.ty === 'string')) {
+          let ndOut = String(obj.nd || '').trim();
+          if (ndOut.endsWith('.') && !ndOut.endsWith('..') && !ndOut.endsWith('./.')) ndOut = ndOut.slice(0, -1) + './.';
           return {
             ty: String(obj.ty || '').trim(),
             cc: Array.isArray(obj.cc) ? obj.cc.map(x => String(x).trim()).filter(Boolean) : [],
-            nd: String(obj.nd || '').trim(),
+            nd: ndOut,
             summary: String(obj.summary || '').trim(),
             provider: providerLabel
           };
@@ -1323,6 +1334,7 @@
         cc = s.slice(ccIdx, ndIdx).replace(/^\s*Căn cứ(?:\s+ban hành)?\s*:\s*/i, '').split('\n').map(x => x.trim()).filter(Boolean);
       }
     }
+    if (nd.endsWith('.') && !nd.endsWith('..') && !nd.endsWith('./.')) nd = nd.slice(0, -1) + './.';
     return { ty, cc, nd, summary: '', provider: providerLabel };
   }
 

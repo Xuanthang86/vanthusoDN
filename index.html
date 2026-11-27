@@ -18,10 +18,18 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .wrap{overflow-x:auto;background:#cfd6e2;padding:14px;border-radius:12px}
 #paper{background:#fff;color:#000;width:210mm;min-width:210mm;min-height:297mm;margin:auto;padding:20mm 20mm 20mm 30mm;font:14pt/1.0 "Times New Roman",Times,serif;box-shadow:0 2px 10px rgba(0,0,0,.25)}
-#paper .hd{display:grid;grid-template-columns:4121fr 4950fr;gap:0;text-align:center;font-size:13pt;line-height:1.0}#paper p{margin:0;text-align:justify;line-height:1.0}
+#paper .hd{display:grid;grid-template-columns:minmax(0,4121fr) minmax(0,4950fr);gap:0;text-align:center;font-size:13pt;line-height:1.0}#paper .hd>div{min-width:0}#paper p{margin:0;text-align:justify;line-height:1.0}
 #paper .ln{border-top:1px solid #000;width:40%;margin:2pt auto}
 .it{padding:8px 10px;border-left:4px solid;border-radius:6px;background:var(--bg);margin:6px 0}.it.er{border-color:var(--er)}.it.wa{border-color:var(--wa)}.it.ok{border-color:var(--ok)}
 .mu{color:var(--mu)}#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:10px;z-index:99;display:none;max-width:90%;box-shadow:0 4px 14px rgba(0,0,0,.35)}.tag{font-size:12px;background:var(--bg);border:1px solid var(--bd);padding:2px 8px;border-radius:99px}
+.vts-ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:120;align-items:center;justify-content:center;padding:16px}
+.vts-ov.on{display:flex}
+.vts-dlg{background:var(--cd);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:18px;width:min(440px,100%);box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.vts-dlg h3{margin:0 0 8px;font-size:16px}
+.vts-dlg p{margin:0 0 12px;color:var(--mu);line-height:1.45}
+.vts-dlg input{margin-bottom:12px}
+.vts-dlg .bar{justify-content:flex-end;margin:0}
+.btn.d{background:var(--er);color:#fff;border-color:var(--er)}
 .dp-pop{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:60;background:var(--cd);border:1px solid var(--bd);border-radius:10px;padding:10px;width:272px;box-shadow:0 8px 24px rgba(0,0,0,.22);user-select:none}
 .dp-hd{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;font-weight:700;font-size:13px}
 .dp-hd button{padding:3px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer;font-weight:700}
@@ -34,7 +42,7 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 <header><div><h1>App Văn thư số</h1><small>Chuẩn chính quyền, đúng văn bản Đảng – soạn thảo và rà soát thể thức</small></div>
 <div class="seg"><button id="m-nn">Khối Nhà nước – NĐ 30/2020</button><button id="m-dang">Khối Đảng – HD 05-HD/VPTW</button></div></header>
 <nav id="nav"><button data-t="soan" class="on">1. Soạn thảo</button><button data-t="ra">2. Rà soát</button><button data-t="tra">3. Tra cứu</button><button data-t="ls">4. Lịch sử</button><button data-t="cf">5. Cấu hình đơn vị</button><button data-t="opt">6. Tối ưu file</button><button data-t="dg">7. Đánh giá</button></nav>
-<datalist id="dl-names"></datalist><div id="toast"></div><main>
+<datalist id="dl-names"></datalist><div id="toast"></div><div id="vts-modal" class="vts-ov" aria-hidden="true"></div><main>
 <section class="tab on" id="soan"><div class="grid"><div class="card">
 <b>Thông tin văn bản</b> <span class="tag" id="mtag"></span>
 <label>Mẫu soạn sẵn</label><div class="row"><select id="tpl"></select><button class="btn" id="usetpl">Dùng mẫu</button></div>
@@ -55,7 +63,7 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);bor
 <section class="tab" id="ls"><div class="card"><div id="hs"></div></div></section>
 
 <section class="tab" id="cf"><div class="card" style="max-width:640px"><b>Cấu hình đơn vị</b><p class="mu">Dùng chung cho mọi bản soạn. Lưu trong trình duyệt của bạn.</p>
-<label>Địa danh</label><input data-c="place" placeholder="Đà Nẵng"><label>Phòng soạn thảo mặc định (viết tắt)</label><input data-c="dv" placeholder="TTTK">
+<div class="row"><div><label>Địa danh</label><input data-c="place" placeholder="Đà Nẵng"></div><div><label>Phòng soạn thảo mặc định (viết tắt)</label><input data-c="dv" placeholder="TTTK"></div></div>
 <b style="display:block;margin-top:14px">Khối Nhà nước</b><label>Cơ quan chủ quản (in hoa)</label><input data-c="nP" placeholder="SỞ KHOA HỌC VÀ CÔNG NGHỆ THÀNH PHỐ ĐÀ NẴNG (tự tách dòng ở “THÀNH PHỐ…”)"><label>Cơ quan ban hành (in hoa)</label><input data-c="nO" placeholder="TRUNG TÂM ĐỔI MỚI SÁNG TẠO"><label>Viết tắt cơ quan</label><input data-c="nA" placeholder="TTĐMST"><label>Tên cơ quan viết thường (dùng trong câu, VD “… kính thông báo”)</label><input data-c="nOn" placeholder="Trung tâm Đổi mới sáng tạo Đà Nẵng"><label>Viết tắt trong ký hiệu Nghị quyết</label><input data-c="nqA" placeholder="HĐND"><label>Cơ quan ban hành Nghị quyết (in hoa)</label><input data-c="nqO" placeholder="HỘI ĐỒNG NHÂN DÂN THÀNH PHỐ ĐÀ NẴNG"><label>Tên đầy đủ phòng soạn thảo mặc định (dùng trong Phiếu trình)</label><input data-c="dvn">
 <b style="display:block;margin-top:14px">Khối Đảng</b><label>Cấp ủy cấp trên (in hoa)</label><input data-c="dP" placeholder="THÀNH UỶ ĐÀ NẴNG"><label>Cơ quan ban hành (in hoa)</label><input data-c="dO" placeholder="ĐẢNG UỶ SỞ KHOA HỌC VÀ CÔNG NGHỆ"><label>Viết tắt cơ quan</label><input data-c="dA" placeholder="ĐU">
 <b style="display:block;margin-top:14px">Danh bạ lãnh đạo (tự điền người ký)</b><p class="mu">Mỗi dòng: Chức vụ | Họ và tên | Quyền hạn ký (nếu có, VD KT. GIÁM ĐỐC). Dùng để chọn nhanh người ký và điền tên Giám đốc, Phó Giám đốc trong Phiếu trình.</p><textarea data-c="leaders" style="min-height:90px"></textarea><b style="display:block;margin-top:14px">Chia sẻ cấu hình giữa các máy, các đơn vị</b><div class="bar"><button class="btn" id="cfx">Xuất cấu hình (JSON)</button><button class="btn" id="cfi">Nhập cấu hình</button></div><textarea id="cfj" placeholder="Cấu hình hiện ở đây; dán cấu hình của đơn vị khác rồi bấm Nhập cấu hình"></textarea><div class="bar" style="margin-top:14px"><button class="btn p" id="svcf">Lưu cấu hình</button><button class="btn" id="th">Đổi giao diện sáng/tối</button></div></div></section>
@@ -70,7 +78,9 @@ const T={nn:[['NQ','Nghị quyết','NQ','qd'],['QĐ','Quyết định','QĐ','q
 dang:[['NQ','Nghị quyết','NQ','qd'],['QĐ','Quyết định','QĐ','qd'],['QyĐ','Quy định','QĐ','tl'],['QC','Quy chế','QC','tl'],['CT','Chỉ thị','CT','tl'],['KL','Kết luận','KL','tl'],['TT','Thông tri','TT','tl'],['HD','Hướng dẫn','HD','tl'],['CTr','Chương trình','CTr','tl'],['KH','Kế hoạch','KH','tl'],['ĐA','Đề án','ĐA','tl'],['BC','Báo cáo','BC','tl'],['TB','Thông báo','TB','tl'],['TTr','Tờ trình','TTr','tl'],['BB','Biên bản','BB','bb'],['GM','Giấy mời','GM','gm'],['CV','Công văn','CV','cv']]};
 const iso=()=>new Date().toISOString().slice(0,10);
 const CD={place:'Đà Nẵng',nP:'SỞ KHOA HỌC VÀ CÔNG NGHỆ THÀNH PHỐ ĐÀ NẴNG',nO:'TRUNG TÂM ĐỔI MỚI SÁNG TẠO',nOn:'Trung tâm Đổi mới sáng tạo Đà Nẵng',nA:'TTĐMST',nqA:'HĐND',nqO:'HỘI ĐỒNG NHÂN DÂN THÀNH PHỐ ĐÀ NẴNG',dv:'TTTK',dvn:'',dP:'THÀNH UỶ ĐÀ NẴNG',dO:'ĐẢNG UỶ',dA:'ĐU',leaders:'GIÁM ĐỐC | | \nPHÓ GIÁM ĐỐC | | KT. GIÁM ĐỐC'};
-let mode='nn',C={...CD,...ls.g('vts-cf2',{})},S={type:'KH',so:'',date:iso(),ty:'',cc:'',kg:'',nd:'',nn:'',quyen:'',cv:'',ten:'',tq:'',dv:C.dv,tk:'',nt:'',ldp:'',ph:'',phOn:false,pgdOn:false,pgd:'',gd:'',dvn:C.dvn};
+let mode='nn',C={...CD,...ls.g('vts-cf2',{})};
+function blankDraft(m){const nn=m!=='dang';return{type:'KH',so:'',date:iso(),ty:'',cc:'',kg:'',nd:'',nn:nn?`- Như trên;\n- Lưu: VT, ${C.dv||'TTTK'}.`:'- Như trên,\n- Lưu VP.',quyen:nn?'':'T/M ĐẢNG UỶ',cv:nn?'GIÁM ĐỐC':'BÍ THƯ',ten:'',tq:'',dv:nn?(C.dv||''):'',tk:'',nt:'',ldp:'',ph:'',phOn:false,pgdOn:false,pgd:'',gd:'',dvn:nn?(C.dvn||''):'',qcDirect:false}}
+const drafts={nn:blankDraft('nn'),dang:blankDraft('dang')};let S=drafts.nn;
 const TY=k=>T[mode].find(t=>t[0]==k)||T[mode][0],name=k=>TY(k)[1],kind=()=>TY(S.type)[3];
 /* Nội dung mẫu theo từng thể loại (dùng chung hai khối, chỗ trống ghi “…”) */
 const BD={
@@ -224,9 +234,15 @@ Vậy phòng … kính trình Lãnh đạo Trung tâm xem xét, phê duyệt.
 Các tài liệu đính kèm:
 - …`;
 BD.PA=BD.DA;BD.ĐA=BD.DA;BD.QyĐ=BD.QC;
-const TYH={nn:{NQ:'Về việc …',QĐ:'Về việc …',TB:'Về việc …',TTr:'Về việc …',PT:'Về việc …',QyĐ:'Về …',QC:'Làm việc của …',KH:'Tổ chức …',BC:'Kết quả thực hiện …',ĐA:'… ',BB:'Họp …',GM:'Họp …',CV:'…'}};
+const TYH={
+nn:{NQ:'Về việc …',QĐ:'Về việc …',TB:'Về việc …',TTr:'Về việc …',PT:'Về việc …',QyĐ:'Về …',QC:'Làm việc của …',KH:'Tổ chức …',BC:'Kết quả thực hiện …',ĐA:'…',BB:'Họp …',GM:'Họp …',CV:'…'},
+dang:{NQ:'về …',QĐ:'về việc …',QyĐ:'về …',QC:'làm việc của …',CT:'về tăng cường …',KL:'về …',TT:'về …',HD:'thực hiện …',CTr:'công tác …',KH:'tổ chức …',ĐA:'…',BC:'kết quả thực hiện …',TB:'về việc …',TTr:'về việc …',BB:'họp …',GM:'họp …',CV:'…'}
+};
 function mkTpl(k0){const v=k0,k=k0=='TB2'?'TB':k0,nn=mode=='nn',kd=TY(k)[3],sg=nn?['','GIÁM ĐỐC']:['T/M ĐẢNG UỶ','BÍ THƯ'],dv=S.dv||C.dv;
-let nd=(BD[k]||BD.KH).replace('{A}',C.nA).replace('{N}',C.nOn),cc='',tq='',q=sg[0],c=sg[1],kg='',ty=(TYH.nn[k]||'…');
+const orgA=nn?C.nA:C.dA,orgPhrase=nn?C.nOn:(C.dO?C.dO.charAt(0)+C.dO.slice(1).toLowerCase():'Đảng uỷ');
+let nd=(BD[k]||BD.KH).replace('{A}',orgA).replace('{N}',orgPhrase),cc='',tq='',q=sg[0],c=sg[1],kg='',ty=((nn?TYH.nn[k]:TYH.dang[k])||TYH.nn[k]||'…');
+if(!nn)nd=nd.replace('số …/QĐ-','số …-QĐ/');
+nd=nn?nd.replace(/Uỷ/g,'Ủy').replace(/uỷ/g,'ủy'):nd.replace(/Ủy/g,'Uỷ').replace(/ủy/g,'uỷ');
 if(nn&&k=='QĐ'){nd=BD.QDN;tq='GIÁM ĐỐC TRUNG TÂM ĐỔI MỚI SÁNG TẠO';cc='Căn cứ …;\nCăn cứ …;\nTheo đề nghị của ….'}
 if(v=='TB2'){cc='Căn cứ …;\nCăn cứ …;';nd='…\n…\n'+C.nOn+' kính thông báo đến … được biết./.'}
 if(nn&&k=='NQ'){nd=BD.NQN;tq=C.nqO+'\nKHÓA …, NHIỆM KỲ …, KỲ HỌP THỨ …';cc='Căn cứ …;\nXét Tờ trình số … ngày … của …;\nXét Báo cáo thẩm tra của ….';q='TM. HỘI ĐỒNG NHÂN DÂN';c='CHỦ TỊCH'}
@@ -234,28 +250,29 @@ if(!nn&&k=='NQ'){nd=BD.NQD;cc='Căn cứ Điều lệ Đảng;\nCăn cứ Quy ch
 if(!nn&&k=='QĐ'){nd=BD.QDD;cc='Căn cứ Điều lệ Đảng;\nCăn cứ Quy chế làm việc của …;\nXét đề nghị của ….'}
 if(['CV','TTr'].includes(k))kg=nn?'…':'Ban Thường vụ …';
 if(k=='PT'){kg='Lãnh đạo Trung tâm';q='';c=''}
-if(k=='QC'||k=='QyĐ')ty='… tại '+C.nOn;
+if(k=='QC'||k=='QyĐ')ty=(nn?'… tại ':'quy chế làm việc của ')+orgPhrase;
 if(kd=='bb'){q='';c='CHỦ TỌA'}
 if(!nn)ty=ty.charAt(0).toLowerCase()+ty.slice(1);
-const lu=nn?`- Lưu: VT, ${dv}.`:'- Lưu Văn phòng.',nr=kd=='pt'?'':kd=='bb'?lu:(nn&&k=='QĐ'?'- Như Điều 3;\n'+lu:(nn?'- Như trên;\n':'- Như trên,\n')+lu);
+const lu=nn?`- Lưu: VT, ${dv}.`:'- Lưu VP.',nr=kd=='pt'?'':kd=='bb'?lu:(nn&&k=='QĐ'?'- Như Điều 3;\n'+lu:(nn?'- Như trên;\n':'- Như trên,\n')+lu);
 const r={type:k,ty,cc,kg,nd,nn:nr,quyen:q,cv:c,tq};if(k=='PT'){const ld=leaders();r.dvn=S.dvn||C.dvn;r.ph='';r.phOn=false;r.pgdOn=false;r.gd=(ld.find(a=>/^GIÁM ĐỐC/i.test(a[0]))||[])[1]||'';r.pgd=(ld.find(a=>/^PHÓ GIÁM ĐỐC/i.test(a[0]))||[])[1]||''}return r}
 function leaders(){return (C.leaders||'').split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a[0])}
 function fillLead(){const ld=leaders();$('#lead').innerHTML='<option value="">— chọn —</option>'+ld.map((a,i)=>`<option value="${i}">${esc(a[0]+(a[1]?' – '+a[1]:''))}</option>`).join('');$('#dl-names').innerHTML=ld.filter(a=>a[1]).map(a=>`<option value="${esc(a[1])}">`).join('')}
 
 function fillSel(){const s=$('#type');s.innerHTML=T[mode].map(t=>`<option value="${t[0]}">${t[1]} (${t[2]||'không ghi tên loại'})</option>`).join('');s.value=S.type;$('#tpl').innerHTML=T[mode].map(t=>`<option value="${t[0]}">${t[1]}</option>`+(mode=='nn'&&t[0]=='TB'?'<option value="TB2">Thông báo (có căn cứ, “kính thông báo”)</option>':'')).join('');$('#tpl').value=S.type}
-function vis(){const kd=kind(),nn=mode=='nn',sh=(id,v)=>$(id).style.display=v?'':'none';sh('#f-tq',nn&&kd=='qd');sh('#f-kg',['cv','tl','pt'].includes(kd));sh('#f-dv',nn);sh('#f-tk',kd=='bb');sh('#f-pt',kd=='pt');sh('#ph-w',S.phOn);sh('#pgd-w',S.pgdOn);sh('#f-nn',kd!='pt');sh('#f-sg',kd!='pt')}
-function setMode(m){mode=m;document.body.dataset.mode=m;$('#m-nn').className=m=='nn'?'on':'';$('#m-dang').className=m=='dang'?'on':'';$('#mtag').textContent=m=='nn'?'Khối Nhà nước – NĐ 30/2020':'Khối Đảng – HD 05-HD/VPTW';if(!T[m].some(t=>t[0]==S.type))S.type='KH';fillSel();if(!S.nn&&kind()!='pt')S.nn=mkTpl(S.type).nn;vis();sync();render()}
+function vis(){const kd=kind(),nn=mode=='nn',sh=(id,v)=>$(id).style.display=v?'':'none';sh('#f-tq',nn&&kd=='qd');sh('#f-kg',['cv','tl','pt'].includes(kd));sh('#f-dv',nn);sh('#f-tk',kd=='bb');sh('#f-pt',kd=='pt');sh('#ph-w',S.phOn);sh('#pgd-w',S.pgdOn);sh('#f-nn',kd!='pt');sh('#f-sg',kd!='pt');const kgLb=$('#f-kg label');if(kgLb)kgLb.textContent=nn?'Kính gửi':(S.type=='TTr'?'Kính trình':'Kính gửi');const qLb=[...$$('#f-sg label')].find(e=>e.textContent.includes('Quyền hạn'));if(qLb)qLb.textContent=nn?'Quyền hạn người ký (VD: KT. GIÁM ĐỐC)':'Quyền hạn người ký (VD: T/M ĐẢNG UỶ, KT. BÍ THƯ)'}
+function setMode(m){const prev=mode;if(prev&&S)drafts[prev]=S;mode=m;if(!drafts[m])drafts[m]=blankDraft(m);S=drafts[m];document.body.dataset.mode=m;$('#m-nn').className=m=='nn'?'on':'';$('#m-dang').className=m=='dang'?'on':'';$('#mtag').textContent=m=='nn'?'Khối Nhà nước – NĐ 30/2020':'Khối Đảng – HD 05-HD/VPTW';if(!T[m].some(t=>t[0]==S.type))S.type='KH';fillSel();if(!S.nn&&kind()!='pt')S.nn=mkTpl(S.type).nn;vis();sync();render()}
 const isoToDmy=s=>{const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:''};
 const dmyToIso=s=>{const m=String(s||'').trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(!m)return '';const d=+m[1],mo=+m[2],y=+m[3];if(mo<1||mo>12||d<1||d>31)return '';const dt=new Date(y,mo-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return '';return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
-function sync(){$$('[data-k]').forEach(e=>{if(e.type=='checkbox')e.checked=!!S[e.dataset.k];else e.value=S[e.dataset.k]||''});const dmy=$('#date-dmy');if(dmy&&document.activeElement!==dmy)dmy.value=isoToDmy(S.date)}
+function sync(){$$('[data-k]').forEach(e=>{if(e.type=='checkbox')e.checked=!!S[e.dataset.k];else e.value=S[e.dataset.k]||''});const dmy=$('#date-dmy');if(dmy&&document.activeElement!==dmy)dmy.value=isoToDmy(S.date);if(typeof _dpView!=='undefined'&&S.date)_dpView=_parseIso(S.date)}
 const NB='\u00a0',noSo=()=>mode=='nn'&&['BB','PT','QC','QyĐ'].includes(S.type);
-function splitOrg(s){s=(s||'').trim();if(!s)return[];const m=s.match(/^(.*?\S)\s+((?:THÀNH PHỐ|TỈNH|HUYỆN|QUẬN|THỊ XÃ|XÃ(?! HỘI)|PHƯỜNG|ĐẶC KHU)\s.+)$/);return m?[m[1],m[2]]:[s]}
+function _wrapOrg(line,b,maxW=4600){line=(line||'').trim();if(!line)return[];if(mw(line,13,b)<=maxW)return[line];const loc=line.match(/^(.*?\S)\s+(ĐÀ NẴNG|HÀ NỘI|HỒ CHÍ MINH|HẢI PHÒNG|CẦN THƠ|HUẾ)$/);if(loc&&mw(loc[1],13,b)<=maxW)return[loc[1],loc[2]];const ws=line.split(/\s+/);if(ws.length<2)return[line];let best=1,bestScore=Infinity;for(let i=1;i<ws.length;i++){const l=ws.slice(0,i).join(' '),r=ws.slice(i).join(' '),sc=Math.max(mw(l,13,b),mw(r,13,b));if(sc<bestScore){bestScore=sc;best=i}}const L=ws.slice(0,best).join(' '),R=ws.slice(best).join(' ');return[...(mw(L,13,b)>maxW&&L.includes(' ')?_wrapOrg(L,b,maxW):[L]),...(mw(R,13,b)>maxW&&R.includes(' ')?_wrapOrg(R,b,maxW):[R])]}
+function splitOrg(s,b=false){s=(s||'').trim();if(!s)return[];const m=s.match(/^(.*?\S)\s+((?:THÀNH PHỐ|TỈNH|HUYỆN|QUẬN|THỊ XÃ|XÃ(?! HỘI)|PHƯỜNG|ĐẶC KHU)\s.+)$/);const parts=m?[m[1],m[2]]:[s];return parts.flatMap(p=>_wrapOrg(p,b))}
 function soLine(){const t=TY(S.type);if(mode=='nn'){const suf=t[3]=='cv'?C.nA+(S.dv?'-'+S.dv:''):(S.type=='NQ'?'NQ-'+(C.nqA||'HĐND'):t[2]+'-'+C.nA);return 'Số:'+(S.so?' '+S.so:NB.repeat(14))+'/'+suf}return 'Số '+(S.so||NB.repeat(6))+'-'+t[2]+'/'+C.dA}
 const dt=()=>{const d=S.date?S.date.split('-'):['','',''];return `${C.place}, ngày ${d[2]} tháng ${d[1]} năm ${d[0]}`};
 const plainT=()=>mode=='nn'&&['QC','QyĐ'].includes(S.type);
 function build(){const nn=mode=='nn',t=TY(S.type),kd=t[3],ty=S.ty.replace(/^V\/v\s*/i,''),plain=plainT(),nq=nn&&S.type=='NQ',L=[],R=[],B=[];
-if(!plain){if(!nq)splitOrg(nn?C.nP:C.dP).forEach(x=>L.push({x,sz:13}));
-const og=splitOrg(nq?C.nqO:(nn?C.nO:C.dO));og.forEach((x,i)=>L.push({x,b:1,sz:13,rule:nn&&i==og.length-1?'s':''}));if(!nn)L.push({x:'*'});
+if(!plain){if(!nq)splitOrg(nn?C.nP:C.dP,false).forEach(x=>L.push({x,sz:13}));
+const og=splitOrg(nq?C.nqO:(nn?C.nO:C.dO),true);og.forEach((x,i)=>L.push({x,b:1,sz:13,rule:nn&&i==og.length-1?'s':''}));if(!nn)L.push({x:'*'});
 if(kd!='pt'&&!noSo())L.push({x:soLine(),gap:1,so:1,sz:13});
 if(kd=='cv'&&ty)L.push({x:'V/v '+ty,sz:12,gap:1});
 if(nn)R.push({x:'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',b:1,sz:13},{x:'Độc lập - Tự do - Hạnh phúc',b:1,sz:14,rule:'g'});else R.push({x:'ĐẢNG CỘNG SẢN VIỆT NAM',b:1,sz:15,rule:'g'});
@@ -267,6 +284,7 @@ if(kd=='cv'||kd=='pt'||(kd=='tl'&&S.kg.trim()))P(((!nn&&S.type=='TTr')?'Kính tr
 const cl=S.cc.split('\n').filter(x=>x.trim());
 if(nn&&kd=='qd'){S.tq.split('\n').filter(x=>x.trim()).forEach(l=>P([{x:l.trim(),b:1}],{al:'c'}));cl.forEach(l=>P([{x:l.trim(),i:1}],{ind:1,body:1}));P([{x:S.type=='NQ'?'QUYẾT NGHỊ:':'QUYẾT ĐỊNH:',b:1}],{al:'c'})}
 else cl.forEach(l=>P([{x:l.trim(),i:!nn}],{ind:1,body:1}));
+const ndStart=B.length;
 S.nd.split('\n').filter(x=>x.trim()).forEach(l=>{l=l.trim();let m;
 if(kd=='pt'&&/^Vậy phòng/.test(l))l=`Vậy phòng ${S.dvn||C.dvn||'…'} kính trình Lãnh đạo Trung tâm xem xét, phê duyệt.`;
 if(kd=='pt'&&/^Người trình:/.test(l)&&S.nt)l='Người trình: '+S.nt;
@@ -277,6 +295,7 @@ else if(m=l.match(/^(Điều \d+\.)(.*)$/)){if(plain&&!/[.;:,]$/.test(m[2].trim(
 else if(/^\d+\.\s+[^\d…]{6,}$/.test(l)&&!/[.;:,…]$/.test(l)&&l.length<90)P([{x:l,b:1}],{ind:1,body:1});
 else if(['gm','bb','pt'].includes(kd)&&(m=l.match(/^((?:Tới dự|Chủ trì|Thời gian|Địa điểm|Thành phần|Thư ký|Nội dung|Người trình|Các tài liệu)[^:]{0,40}:)(.*)$/)))P([{x:m[1],b:1},{x:m[2]}],{ind:1,body:1});
 else P(l,{ind:1,body:1})});
+if(kd!='pt'&&B.length>ndStart){const lastP=B[B.length-1],lastR=lastP&&lastP.rs&&lastP.rs[lastP.rs.length-1];if(lastR&&typeof lastR.x=='string'){const tx=lastR.x.trimEnd();if(tx.endsWith('.')&&!tx.endsWith('..')&&!tx.endsWith('./.'))lastR.x=tx.slice(0,-1)+'./.'}}
 const nr=S.nn.split('\n').map(x=>x.trim()).filter(Boolean);let F;
 if(plain)F={k:'none'};
 else if(kd=='pt'){const phs=S.phOn?S.ph.split('\n').map(x=>x.trim()).filter(Boolean):[];
@@ -287,7 +306,7 @@ else F={k:kd=='bb'?'bb':'std',nr,q:S.quyen,c:S.cv,ten:S.ten,tk:S.tk};
 return{L,R,B,F,plain}}
 const rh=rs=>rs.map(r=>{let x=esc(r.x);if(r.b)x=`<b>${x}</b>`;if(r.i)x=`<i>${x}</i>`;return x}).join('');
 const _splitHd=(L,R)=>{const iL=L.findIndex(o=>o.so||/^V\/v\s/i.test(o.x));const L1=iL<0?L:L.slice(0,iL),L2=iL<0?[]:L.slice(iL);const R1=R.length?R.slice(0,-1):[],R2=R.length?[R[R.length-1]]:[];return{L1,L2,R1,R2}};
-function render(){const m=build(),h=(a,cw)=>a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b),nw=!o.so&&!/^V\/v\s/i.test(o.x),fit=(nw&&cw&&tw>cw-60)?Math.max(84,Math.floor(((cw-60)/tw)*100)):0,sc=fit?`display:inline-block;transform:scaleX(${(fit/100).toFixed(3)});transform-origin:center;`:'',st=`font-size:${sz}pt;line-height:1.0;${o.gap?'margin-top:6pt;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic;':''}`;
+function render(){const m=build(),h=(a,cw)=>a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b),nw=!o.so&&!/^V\/v\s/i.test(o.x),fit=(nw&&cw&&tw>cw-60)?Math.max(68,Math.floor(((cw-60)/tw)*100)):0,sc=fit?`display:inline-block;transform:scaleX(${(fit/100).toFixed(3)});transform-origin:center;`:'',st=`font-size:${sz}pt;line-height:1.0;${o.gap?'margin-top:6pt;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic;':''}`;
 if(o.rule=='g')return `<div style="${st};display:flex;justify-content:center"><span style="display:inline-block;white-space:nowrap;border-bottom:1px solid #000;padding-bottom:1pt;${sc}">${esc(o.x)}</span></div>`;
 if(o.rule=='s')return `<div style="${st};display:flex;justify-content:center"><span style="display:inline-block;white-space:nowrap;${sc}">${esc(o.x)}<span style="display:block;border-top:1px solid #000;width:50%;margin:2pt auto 0"></span></span></div>`;
 if(nw)return `<div style="${st};display:flex;justify-content:center"><span style="white-space:nowrap;${sc}">${esc(o.x)}</span></div>`;
@@ -317,7 +336,7 @@ const tbl=(ws,rows,zp)=>`<w:tbl><w:tblPr><w:tblW w:w="${ws.reduce((a,b)=>a+b,0)}
 const _TNR_R={A:722,B:667,C:667,D:722,E:611,F:556,G:722,H:722,I:333,J:389,K:722,L:611,M:889,N:722,O:722,P:556,Q:722,R:667,S:556,T:611,U:722,V:722,W:944,X:722,Y:722,Z:611,a:444,b:500,c:444,d:500,e:444,f:333,g:500,h:500,i:278,j:278,k:500,l:278,m:778,n:500,o:500,p:500,q:500,r:333,s:389,t:278,u:500,v:500,w:722,x:500,y:500,z:444,' ':250,'-':333,'/':278,'.':250,',':250,':':278};
 const _TNR_B={A:722,B:667,C:722,D:722,E:667,F:611,G:778,H:778,I:389,J:500,K:778,L:667,M:944,N:722,O:778,P:611,Q:778,R:722,S:556,T:667,U:722,V:722,W:1000,X:722,Y:722,Z:667,a:500,b:556,c:444,d:556,e:444,f:333,g:500,h:556,i:278,j:333,k:556,l:278,m:833,n:556,o:500,p:556,q:556,r:444,s:389,t:333,u:556,v:500,w:722,x:500,y:500,z:444,' ':250,'-':333,'/':278,'.':250,',':250,':':333};
 function mw(x,pt,b){const tb=b?_TNR_B:_TNR_R,s=String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');let u=0;for(const ch of s)u+=tb[ch]??(ch>='A'&&ch<='Z'?667:500);return Math.max(0,Math.round(u*(pt*20/1000))-16)}
-function hdocx(a,w){return a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b),nw=!o.so&&!/^V\/v\s/i.test(o.x),fit=(nw&&tw>w-60)?Math.max(84,Math.floor(((w-60)/tw)*100)):0,rs=[{x:o.x,b:o.b,i:o.i,w:fit}],base={sz:sz*2,af:0,ln:240,bf:o.gap?120:0};
+function hdocx(a,w){return a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b),nw=!o.so&&!/^V\/v\s/i.test(o.x),fit=(nw&&tw>w-60)?Math.max(68,Math.floor(((w-60)/tw)*100)):0,rs=[{x:o.x,b:o.b,i:o.i,w:fit}],base={sz:sz*2,af:0,ln:240,bf:o.gap?120:0};
 if(o.rule=='g'){const ind=Math.max(0,Math.round((w-tw)/2));return dp(rs,base)+dp([],{rule:1,l:ind,r:ind,sz:2,bf:0,af:0,ln:20})}
 let s=dp(rs,base);if(o.rule=='s'){const rl=Math.round(Math.min(tw,w)/2),ind=Math.round((w-rl)/2);s+=dp([],{rule:2,l:ind,r:ind,sz:4,bf:0,af:0,ln:120})}return s}).join('')}
 function docXml(){const m=build();let o='';
@@ -382,7 +401,7 @@ if(!nn&&/ủy/i.test(text))add('wa','Văn bản Đảng viết “Uỷ”/“u�
 const cl=L.filter(x=>/^Căn cứ/.test(x));cl.forEach((x,i)=>{if(i<cl.length-1&&!/;$/.test(x))add('wa',`Căn cứ “${x.slice(0,45)}…” phải kết thúc bằng dấu chấm phẩy.`)});
 L.filter(x=>/^Theo đề nghị/.test(x)).forEach(x=>{if(nn&&!/\.$/.test(x))add('wa','Dòng “Theo đề nghị của …” khối Nhà nước kết thúc bằng dấu chấm.')});
 L.filter(x=>!/^(Căn cứ|[-•]|Điều|Chương|Thời gian|Địa điểm|Chủ trì|Thư ký|Thành phần|Tới dự|Nội dung)/.test(x)&&!/^[IVX]+\./.test(x)&&x.split(' ').length>14&&!/[.;:,\/]$/.test(x)).slice(0,3).forEach(x=>add('wa',`Đoạn “${x.slice(0,45)}…” không kết thúc bằng dấu câu.`));
-if(text.trim()&&!/[.\/]\s*$/.test(text.trim()))add('wa','Nội dung chưa kết thúc bằng dấu chấm (thường “./.” trước phần chữ ký).');
+const trTxt=text.trim();if(trTxt){if(!/[.\/]\s*$/.test(trTxt))add('wa','Nội dung chưa kết thúc bằng dấu chấm (thường “./.” trước phần chữ ký).');else if(trTxt.endsWith('.')&&!trTxt.endsWith('..')&&!trTxt.endsWith('./.'))add('wa','Dấu “.” cuối cùng của đoạn cuối cùng phải là “./.” trước phần chữ ký.')}
 add('ok',nn?'Kỹ thuật (NĐ 30/2020): A4, Times New Roman 13–14, lề trên/dưới 20–25 mm, trái 30–35 mm, phải 15–20 mm. Mẫu 1.2/1.3: căn cứ chữ nghiêng; mẫu 1.4 (KH, BC, TB, TTr…): căn cứ chữ thường đứng.':'Kỹ thuật (HD 05-HD/VPTW): Times New Roman; tên loại in hoa đậm 15–16; trích yếu thường đậm 14–15, dưới có 05 dấu gạch nối; chữ ký số xanh PNG nền trong suốt – đối chiếu Phụ lục 2.');
 return R}
 function runCheck(txt){const R=check(txt),e=R.filter(r=>r[0]=='er').length,w=R.filter(r=>r[0]=='wa').length;$('#res').innerHTML=`<p><b>${e} lỗi, ${w} cảnh báo</b> <span class="mu">(rà soát tự động, cần đối chiếu thêm khi ban hành)</span></p>`+R.map(r=>`<div class="it ${r[0]}">${esc(r[1])}</div>`).join('')}
@@ -410,7 +429,14 @@ _dpop.addEventListener('wheel',e=>{e.preventDefault();e.stopPropagation();_shift
 document.addEventListener('click',e=>{if(_dpop.style.display==='block'&&!_dpop.contains(e.target)&&e.target!==_dpb)_dpop.style.display='none'})}
 $('#usetpl').onclick=()=>{const k=$('#tpl').value;if(!S.dv)S.dv=C.dv;Object.assign(S,mkTpl(k));fillSel();vis();sync();render();msg('Đã áp dụng mẫu '+name(k)+'. Thay các chỗ “…” bằng nội dung thực tế.')};
 let tt;function msg(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',3500)}
-$('#save').onclick=()=>{const h=ls.g('vts-hs',[]);h.unshift({t:Date.now(),mode,S:{...S}});msg(ls.s('vts-hs',h.slice(0,50))?'Đã lưu vào lịch sử.':'Trình duyệt không cho phép lưu trữ.')};
+function _openDlg({title,text,input,defVal,ph,okText,danger}){return new Promise(res=>{const ov=$('#vts-modal');if(!ov){res(input?defVal:true);return}ov.innerHTML=`<div class="vts-dlg" role="dialog" aria-modal="true"><h3>${esc(title||'Xác nhận')}</h3>${text?`<p>${esc(text)}</p>`:''}${input?`<input id="vts-dlg-in" maxlength="140" placeholder="${esc(ph||'').replace(/"/g,'&quot;')}">`:''}<div class="bar"><button type="button" class="btn" id="vts-dlg-no">Hủy</button><button type="button" class="btn ${danger?'d':'p'}" id="vts-dlg-ok">${esc(okText||'Xác nhận')}</button></div></div>`;ov.classList.add('on');ov.setAttribute('aria-hidden','false');const inp=$('#vts-dlg-in'),ok=$('#vts-dlg-ok'),no=$('#vts-dlg-no');if(inp)inp.value=defVal||'';let done=false;const close=v=>{if(done)return;done=true;document.removeEventListener('keydown',onKey);ov.classList.remove('on');ov.setAttribute('aria-hidden','true');ov.innerHTML='';res(v)};const submit=()=>close(input?(inp.value||'').trim():true);const onKey=e=>{if(e.key==='Escape')close(input?null:false);else if(e.key==='Enter'&&(!inp||document.activeElement===inp)){e.preventDefault();submit()}};document.addEventListener('keydown',onKey);ov.onclick=e=>{if(e.target===ov)close(input?null:false)};no.onclick=()=>close(input?null:false);ok.onclick=submit;setTimeout(()=>{if(inp){inp.focus();inp.select()}else ok.focus()},10)})}
+function uiConfirm(text,title='Xác nhận xóa',okText='Xóa'){return _openDlg({title,text,okText,danger:true})}
+function uiPrompt(title,defVal='',ph='Nhập tên...',okText='Lưu',text=''){return _openDlg({title,text,input:true,defVal,ph,okText})}
+function hsFolders(){const saved=ls.g('vts-hs-folders',[]);const list=Array.isArray(saved)?saved.map(x=>String(x||'').trim()).filter(Boolean):[];const seen=new Set(list.map(x=>x.toLowerCase()));ls.g('vts-hs',[]).forEach(x=>{const f=String(x&&x.folder||'').trim();if(f&&!seen.has(f.toLowerCase())){seen.add(f.toLowerCase());list.push(f)}});return list}
+function saveHsFolders(list){const out=[],seen=new Set();(list||[]).forEach(x=>{const f=String(x||'').trim();if(f&&!seen.has(f.toLowerCase())){seen.add(f.toLowerCase());out.push(f)}});ls.s('vts-hs-folders',out);return out}
+function _ensureFolder(name){const n=String(name||'').trim();if(!n)return '';const cur=hsFolders();const ex=cur.find(f=>f.toLowerCase()===n.toLowerCase());if(ex)return ex;cur.push(n);saveHsFolders(cur);return n}
+function _folderDlg({title,showName,defName,defFolder,okText}){return new Promise(res=>{const ov=$('#vts-modal');if(!ov){res(null);return}const folders=hsFolders();const initFd=folders.includes(defFolder)?defFolder:'';ov.innerHTML=`<div class="vts-dlg" role="dialog" aria-modal="true"><h3>${esc(title)}</h3>${showName?`<label style="margin-top:0">Tên bản lưu</label><input id="vts-fd-nm" maxlength="140" placeholder="Nhập tên bản lưu...">`:''}<label${showName?'':' style="margin-top:0"'}>Chọn thư mục</label><select id="vts-fd-sel"><option value="">— Chưa phân loại (Chung) —</option>${folders.map(f=>`<option value="${esc(f).replace(/"/g,'&quot;')}">${esc(f)}</option>`).join('')}<option value="__new__">+ Tạo thư mục mới...</option></select><div id="vts-fd-neww" style="display:none;margin-top:8px"><label style="margin-top:0">Tên thư mục mới</label><input id="vts-fd-new" maxlength="80" placeholder="VD: Công văn 2026"></div><div class="bar" style="margin-top:12px"><button type="button" class="btn" id="vts-dlg-no">Hủy</button><button type="button" class="btn p" id="vts-dlg-ok">${esc(okText||'Lưu')}</button></div></div>`;ov.classList.add('on');ov.setAttribute('aria-hidden','false');const nmIn=$('#vts-fd-nm'),sel=$('#vts-fd-sel'),newW=$('#vts-fd-neww'),newIn=$('#vts-fd-new'),ok=$('#vts-dlg-ok'),no=$('#vts-dlg-no');if(nmIn)nmIn.value=defName||'';sel.value=initFd;sel.onchange=()=>{const isN=sel.value==='__new__';newW.style.display=isN?'block':'none';if(isN)setTimeout(()=>newIn.focus(),10)};let done=false;const close=v=>{if(done)return;done=true;document.removeEventListener('keydown',onKey);ov.classList.remove('on');ov.setAttribute('aria-hidden','true');ov.innerHTML='';res(v)};const submit=()=>{const nm=nmIn?(nmIn.value||'').trim():'';if(showName&&!nm){msg('Hãy nhập tên bản lưu.');nmIn.focus();return}let folder=sel.value;if(folder==='__new__'){const nf=(newIn.value||'').trim();if(!nf){msg('Hãy nhập tên thư mục mới.');newIn.focus();return}folder=_ensureFolder(nf)}close({name:nm,folder})};const onKey=e=>{if(e.key==='Escape')close(null);else if(e.key==='Enter'&&(e.target===nmIn||e.target===newIn)){e.preventDefault();submit()}};document.addEventListener('keydown',onKey);ov.onclick=e=>{if(e.target===ov)close(null)};no.onclick=()=>close(null);ok.onclick=submit;setTimeout(()=>{if(nmIn){nmIn.focus();nmIn.select()}else sel.focus()},10)})}
+$('#save').onclick=async()=>{const def=(S.ty||'').trim()||`${name(S.type)} (${isoToDmy(S.date)})`;const lastFd=ls.g('vts-last-folder','');const r=await _folderDlg({title:'Lưu vào lịch sử',showName:true,defName:def,defFolder:lastFd,okText:'Lưu'});if(!r)return;ls.s('vts-last-folder',r.folder||'');const h=ls.g('vts-hs',[]);h.unshift({t:Date.now(),mode,name:r.name,folder:r.folder||'',S:{...S}});msg(ls.s('vts-hs',h.slice(0,50))?(r.folder?`Đã lưu “${r.name}” vào thư mục “${r.folder}”.`:`Đã lưu “${r.name}” vào lịch sử.`):'Trình duyệt không cho phép lưu trữ.')};
 $('#copy').onclick=async()=>{const t=$('#paper').innerText;try{await navigator.clipboard.writeText(t);msg('Đã sao chép văn bản.')}catch(e){try{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();msg(ok?'Đã sao chép văn bản.':'Không sao chép được – hãy bôi đen văn bản rồi Ctrl+C.')}catch(e2){msg('Không sao chép được – hãy bôi đen văn bản rồi Ctrl+C.')}}};
 $('#print').onclick=()=>{try{window.print()}catch(e){msg('Không in được trong khung này – hãy mở trang ở tab riêng.')}};
 function noAccent(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,m=>m=='đ'?'d':'D')}
@@ -428,7 +454,7 @@ const KB=[['Quy ước của đơn vị (TTĐMST)','Ký hiệu: Công văn “S�
 ['Cỡ chữ Nhà nước','Quốc hiệu 12–13 in hoa; tiêu ngữ 13–14 đứng đậm; tên cơ quan 12–13 in hoa; số ký hiệu 13; địa danh, ngày tháng 13–14 nghiêng; tên loại 13–14 in hoa đậm; trích yếu 14 đậm; nội dung 13–14; nơi nhận 11–12.'],
 ['Lề trang Nhà nước','A4. Lề trên 20–25 mm, dưới 20–25 mm, trái 30–35 mm, phải 15–20 mm. Phông Times New Roman, Unicode. Số trang đánh từ trang thứ hai.'],
 ['Số và ký hiệu Nhà nước','“Số: 12/KH-UBND”. Số từ 01 đầu năm đến hết năm; số nhỏ hơn 10 ghi thêm 0.'],
-['Viết tắt tên loại','NQ, QĐ, CT, QC, QĐ (Quy định), TC (Thông cáo), TB, HD, CTr, KH, PA, ĐA, DA, BC, BB, TTr, HĐ, GM… Công văn không ghi tên loại.'],
+['Viết tắt tên loại (Chính quyền)','NQ, QĐ, CT, QC, QĐ (Quy định), TC (Thông cáo), TB, HD, CTr, KH, PA, ĐA, DA, BC, BB, TTr, HĐ, GM… Công văn không ghi tên loại.'],
 ['Ngày tháng','“Đà Nẵng, ngày 05 tháng 01 năm 2026”. Ngày nhỏ hơn 10 và tháng 1, 2 ghi thêm số 0.'],
 ['Nơi nhận Nhà nước','“Nơi nhận:” in nghiêng đậm; mỗi dòng gạch đầu dòng kết thúc dấu chấm phẩy, dòng cuối “Lưu: VT, …” kết thúc dấu chấm.'],
 ['Văn bản Đảng – phạm vi','HD 05-HD/VPTW (27/5/2026) thực hiện Quy định 399-QĐ/TW (09/01/2026) về thể loại, thẩm quyền ban hành và thể thức văn bản của Đảng; áp dụng từ Trung ương đến chi bộ; thay thế HD 36-HD/VPTW (2018); không áp dụng với tổ chức hoạt động theo Luật Doanh nghiệp.'],
@@ -441,8 +467,8 @@ const KB=[['Quy ước của đơn vị (TTĐMST)','Ký hiệu: Công văn “S�
 ['Chữ ký số văn bản điện tử Đảng','Chữ ký của người có thẩm quyền: màu xanh, PNG nền trong suốt, đặt giữa chức vụ và họ tên. Dấu cơ quan: PNG nền trong suốt.'],
 ['Văn bản liên quan','NĐ 30/2020/NĐ-CP (05/3/2020); HD 05-HD/VPTW (27/5/2026); Quy định 399-QĐ/TW (09/01/2026); HD 09-HD/VPTW (03/6/2026) về xử lý văn bản điện tử. Luôn đối chiếu văn bản sửa đổi, bổ sung mới nhất.']];
 function kb(){const q=$('#q').value.toLowerCase();$('#kb').innerHTML=KB.filter(k=>(k[0]+k[1]).toLowerCase().includes(q)).map(k=>`<div class="it ok"><b>${esc(k[0])}</b><br>${esc(k[1])}</div>`).join('')||'<p class="mu">Không có kết quả.</p>'}$('#q').oninput=kb;
-function hist(){const h=ls.g('vts-hs',[]);$('#hs').innerHTML=h.length?h.map((x,i)=>`<div class="it ok" style="display:flex;gap:8px;align-items:center;justify-content:space-between"><div><b>${esc(x.S.ty||'(Chưa có trích yếu)')}</b><br><span class="mu">${x.mode=='nn'?'Nhà nước':'Đảng'} · ${esc(x.S.type)} · ${new Date(x.t).toLocaleString('vi-VN')}</span></div><div><button class="btn" data-o="${i}">Mở</button> <button class="btn" data-d="${i}">Xóa</button></div></div>`).join(''):'<p class="mu">Chưa có bản nào được lưu.</p>';
-$$('[data-o]').forEach(b=>b.onclick=()=>{const x=h[b.dataset.o];S={...S,...x.S};setMode(x.mode);nav('soan')});$$('[data-d]').forEach(b=>b.onclick=()=>{h.splice(b.dataset.d,1);ls.s('vts-hs',h);hist()})}
+function hist(){const h=ls.g('vts-hs',[]);$('#hs').innerHTML=h.length?h.map((x,i)=>{const title=x.name||x.S.ty||'(Chưa có trích yếu)';return `<div class="it ok" style="display:flex;gap:8px;align-items:center;justify-content:space-between"><div><b>${esc(title)}</b><br><span class="mu">${x.mode=='nn'?'Nhà nước':'Đảng'} · ${esc(x.S.type)} · ${new Date(x.t).toLocaleString('vi-VN')}</span></div><div><button class="btn" data-o="${i}">Mở</button> <button class="btn" data-rn="${i}">Đổi tên</button> <button class="btn" data-d="${i}">Xóa</button></div></div>`}).join(''):'<p class="mu">Chưa có bản nào được lưu.</p>';
+$$('[data-o]').forEach(b=>b.onclick=()=>{const x=h[b.dataset.o];setMode(x.mode);S=drafts[x.mode]={...blankDraft(x.mode),...x.S};if(!T[mode].some(t=>t[0]==S.type))S.type='KH';fillSel();vis();sync();render();nav('soan')});$$('[data-rn]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.rn,x=h[i];if(!x)return;const cur=x.name||x.S.ty||'';const nm=await uiPrompt('Đổi tên bản lưu',cur,'Nhập tên mới...','Cập nhật');if(nm===null)return;if(!nm){msg('Tên bản lưu không được để trống.');return}x.name=nm;ls.s('vts-hs',h);hist();msg('Đã đổi tên bản lưu.')});$$('[data-d]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.d,x=h[i];if(!x)return;const title=x.name||x.S.ty||'(Bản lưu)';if(!(await uiConfirm(`Bạn có chắc muốn xóa bản lưu “${title}” khỏi lịch sử?`,'Xác nhận xóa bản lưu')))return;h.splice(i,1);ls.s('vts-hs',h);hist();msg('Đã xóa bản lưu.')})}
 $$('[data-c]').forEach(e=>{e.value=C[e.dataset.c]||''});
 $$('[data-c]').forEach(e=>e.oninput=()=>{C[e.dataset.c]=e.value;render()});
 $('#svcf').onclick=()=>{$$('[data-c]').forEach(e=>C[e.dataset.c]=e.value);render();msg(ls.s('vts-cf2',C)?'Đã lưu cấu hình đơn vị.':'Đã áp dụng cấu hình (trình duyệt không cho lưu lâu dài, sẽ mất khi tải lại trang).')};

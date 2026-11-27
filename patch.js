@@ -7,7 +7,10 @@ const st=document.createElement('style');st.textContent=`#toast{top:50%!importan
 .cfg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.cfg>div{border:1px solid var(--bd);border-radius:10px;padding:12px}@media(max-width:760px){.cfg{grid-template-columns:1fr}}
 .lr{display:grid;grid-template-columns:1fr 1.2fr 1fr auto;gap:6px;margin:5px 0}.lr input{padding:7px}
 .btn.on{background:var(--pr);color:#fff;border-color:var(--pr)}.blk{margin-bottom:10px}
-[data-c="dv"]{margin-bottom:6px}`;
+#cf .row{margin-bottom:4px}
+.hs-fbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin-bottom:12px}
+.hs-ftabs,.hs-facts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.hs-ftabs .btn,.hs-facts .btn{padding:6px 10px;font-size:12.5px}`;
 document.head.appendChild(st);
 
 /* ---------- Đổi tên ---------- */
@@ -66,16 +69,21 @@ const _v=vis;vis=function(){_v();
  if(kd=='bb'||isQ())$('#f-nn').style.display='none';
  if(isQ())$('#f-sg').style.display='none'};
 
-const _sm=setMode;setMode=function(m){const ch=m!=mode;
- if(ch){if(m=='dang'&&/GIÁM ĐỐC/i.test(S.cv)){S.cv='BÍ THƯ';S.quyen='T/M ĐẢNG UỶ';S.ten=''}
-  if(m=='nn'&&/BÍ THƯ/i.test(S.cv)){S.cv='GIÁM ĐỐC';S.quyen='';S.ten=''}
-  if(m=='dang')S.nn=(S.nn||'').replace('Lưu Văn phòng.','Lưu VP.')}
- _sm(m);$('#mtag').textContent=m=='nn'?'Khối Chính quyền – NĐ 30/2020':'Khối Đảng – HD 05-HD/VPTW';fillLead();if(ch){sync();render()}};
+const rsByMode={nn:{rs:'',res:''},dang:{rs:'',res:''}};
+const _sm=setMode;setMode=function(m){const prev=mode,ch=m!=prev;
+ if(ch&&q('#rs')){rsByMode[prev]={rs:q('#rs').value,res:q('#res')?q('#res').innerHTML:''}}
+ _sm(m);$('#mtag').textContent=m=='nn'?'Khối Chính quyền – NĐ 30/2020':'Khối Đảng – HD 05-HD/VPTW';fillLead();
+ if(ch){
+  if(q('#rs')){const st=rsByMode[m]||{rs:'',res:''};q('#rs').value=st.rs;if(q('#res'))q('#res').innerHTML=st.res}
+  if(q('#ai-out'))q('#ai-out').style.display='none';if(q('#ai-err'))q('#ai-err').innerHTML='';
+  if(typeof syncModeFilters==='function')syncModeFilters(m);
+  sync();render();
+ }};
 
 /* ---------- In / Lưu PDF (mở cửa sổ riêng) ---------- */
 $('#print').onclick=()=>{const w=window.open('','_blank');
  if(!w){try{window.print()}catch(e){msg('Trình duyệt chặn cửa sổ in – hãy cho phép cửa sổ bật lên rồi bấm lại.')}return}
- w.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>'+esc(S.ty||'Văn bản')+'</title><style>@page{size:A4;margin:20mm 20mm 20mm 30mm}body{margin:0;font:14pt/1.0 "Times New Roman",Times,serif;color:#000}.hd{display:grid;grid-template-columns:4121fr 4950fr;gap:0;text-align:center;font-size:13pt;line-height:1.0}p{margin:0;text-align:justify;line-height:1.0}.ln{border-top:1px solid #000;margin:2pt auto}</style></head><body>'+$('#paper').innerHTML+'</body></html>');
+ w.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>'+esc(S.ty||'Văn bản')+'</title><style>@page{size:A4;margin:20mm 20mm 20mm 30mm}body{margin:0;font:14pt/1.0 "Times New Roman",Times,serif;color:#000}.hd{display:grid;grid-template-columns:minmax(0,4121fr) minmax(0,4950fr);gap:0;text-align:center;font-size:13pt;line-height:1.0}.hd>div{min-width:0}p{margin:0;text-align:justify;line-height:1.0}.ln{border-top:1px solid #000;margin:2pt auto}</style></head><body>'+$('#paper').innerHTML+'</body></html>');
  w.document.close();w.focus();setTimeout(()=>{w.print()},500);msg('Đã mở cửa sổ in – chọn “Lưu dưới dạng PDF” để lưu.')};
 
 /* ---------- Danh mục đơn vị phân cấp ---------- */
@@ -152,12 +160,14 @@ function orgUI(box,key,F){const nodes=()=>OT[key],by=i=>nodes().find(x=>x.id==i)
   const item=mk(nid,n,pid,a);item.custom=true;
   nodes().push(item);ls.s('vts-org',OT);
   fillP();sp.value=pid;fillO();so.value=nid;apply();w.querySelector('.on').value='';w.querySelector('.oa').value='';msg('Đã thêm đơn vị “'+n+'” (chỉ lưu trên trình duyệt của bạn).')};
- bDel.onclick=()=>{
+ bDel.onclick=async()=>{
   const cur=by(so.value);if(!cur||!cur.custom)return;
   if(nodes().some(c=>c.p===cur.id)){msg('Không thể xóa khi vẫn còn đơn vị cấp dưới trực thuộc.');return}
+  if(!(await uiConfirm('Bạn có chắc muốn xóa đơn vị tự thêm “'+cur.n+'”?','Xác nhận xóa đơn vị')))return;
   OT[key]=nodes().filter(x=>x.id!==cur.id);ls.s('vts-org',OT);
   const pid=sp.value;fillP();sp.value=pid;fillO();apply();msg('Đã xóa đơn vị tự thêm “'+cur.n+'”.')};
- bRst.onclick=()=>{
+ bRst.onclick=async()=>{
+  if(!(await uiConfirm('Bạn có chắc muốn xóa tất cả đơn vị tự thêm và khôi phục danh mục gốc?','Xác nhận khôi phục gốc','Khôi phục')))return;
   OT[key]=nodes().filter(x=>!x.custom);ls.s('vts-org',OT);
   init();apply();msg('Đã khôi phục danh mục đơn vị gốc.')};
  init()}
@@ -168,8 +178,8 @@ function led(box,t,title){const h=document.createElement('b');h.style.cssText='d
  save=a=>{t.value=a.map(r=>r.join(' | ')).join('\n');t.dispatchEvent(new Event('input',{bubbles:true}))},
  draw=(a=rows())=>{w.innerHTML='<div class="mu" style="font-size:12px">Chức vụ · Họ và tên · Quyền hạn ký (nếu có, tối đa 30 người)</div>'+a.map((r,i)=>`<div class="lr">${[0,1,2].map(j=>`<input maxlength="80" value="${at(r[j]||'')}" placeholder="${['Chức vụ','Họ và tên','VD: KT. GIÁM ĐỐC'][j]}">`).join('')}<button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('')+'<button type="button" class="btn" data-a="1">+ Thêm người</button>'};
  w.addEventListener('input',()=>save(coll()));
- w.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=coll();
-  if(b.dataset.x!=null){a.splice(+b.dataset.x,1);save(a);draw()}
+ w.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const a=coll();
+  if(b.dataset.x!=null){const idx=+b.dataset.x,r=a[idx]||[];const lbl=[r[0],r[1]].filter(Boolean).join(' – ')||'mục này';if(!(await uiConfirm('Bạn có chắc muốn xóa “'+lbl+'” khỏi danh bạ lãnh đạo?','Xác nhận xóa')))return;a.splice(idx,1);save(a);draw()}
   else{
    if(a.length>=30){msg('Danh bạ lãnh đạo tối đa 30 người cho mỗi khối.');return}
    if(a.some(r=>!r[0]&&!r[1])){msg('Hãy nhập thông tin vào dòng trống hiện có trước khi thêm người mới.');return}
@@ -185,21 +195,37 @@ t2.addEventListener('input',()=>{C.leadersD=t2.value;fillLead()});
 led(Rc,t2,'Danh bạ lãnh đạo – Khối Đảng (Bí thư, Phó Bí thư…)');
 
 /* ---------- Tra cứu và Lịch sử theo khối ---------- */
-let kbF='',hsF='';
+let kbF='cq',hsF='cq',hsFolder='__all__';
 function seg(target,get,set,fn){const d=document.createElement('div');d.className='bar blk';
  d.innerHTML=[['','Tất cả'],['cq','Khối Chính quyền'],['dang','Khối Đảng']].map(x=>`<button class="btn" data-f="${x[0]}">${x[1]}</button>`).join('');
  const mark=()=>[...d.children].forEach(b=>b.classList.toggle('on',b.dataset.f==get()));
- d.onclick=e=>{const b=e.target.closest('button');if(!b)return;set(b.dataset.f);mark();fn()};mark();target.before(d)}
+ d._mark=mark;
+ d.onclick=e=>{const b=e.target.closest('button');if(!b)return;set(b.dataset.f);mark();fn()};mark();target.before(d);return d}
 kb=function(){const s=$('#q').value.toLowerCase();
- $('#kb').innerHTML=KB.filter(k=>{const dg=/Đảng/.test(k[0]),ch=/Văn bản liên quan/.test(k[0]);return(!kbF||ch||(kbF=='dang')==dg)&&(k[0]+k[1]).toLowerCase().includes(s)}).map(k=>`<div class="it ok"><b>${esc(k[0])}</b><br>${esc(k[1])}</div>`).join('')||'<p class="mu">Không có kết quả.</p>'};
+ $('#kb').innerHTML=KB.filter(k=>{const dg=/Đảng/.test(k[0]),ch=/^(Ngày tháng|Văn bản liên quan)$/.test(k[0]);return(!kbF||ch||(kbF=='dang')==dg)&&(k[0]+k[1]).toLowerCase().includes(s)}).map(k=>{const dg=/Đảng/.test(k[0]),ch=/^(Ngày tháng|Văn bản liên quan)$/.test(k[0]);const tag=ch?'Chung 2 khối':(dg?'Khối Đảng':'Khối Chính quyền');return `<div class="it ok"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(k[0])}</b><span class="tag">${tag}</span></div>${esc(k[1])}</div>`}).join('')||'<p class="mu">Không có kết quả.</p>'};
 $('#q').oninput=()=>kb();
-hist=function(){const h=ls.g('vts-hs',[]),v=h.map((x,i)=>[x,i]).filter(([x])=>!hsF||x.mode==(hsF=='dang'?'dang':'nn'));
- $('#hs').innerHTML=v.length?v.map(([x,i])=>`<div class="it ok" style="display:flex;gap:8px;align-items:center;justify-content:space-between"><div><b>${esc(x.S.ty||'(Chưa có trích yếu)')}</b><br><span class="mu">${x.mode=='nn'?'Khối Chính quyền':'Khối Đảng'} · ${esc(x.S.type)} · ${new Date(x.t).toLocaleString('vi-VN')}</span></div><div><button class="btn" data-o="${i}">Mở</button> <button class="btn" data-d="${i}">Xóa</button></div></div>`).join(''):'<p class="mu">Chưa có bản nào được lưu.</p>';
- $$('[data-o]').forEach(b=>b.onclick=()=>{const x=h[b.dataset.o];S={...S,...x.S};setMode(x.mode);nav('soan')});
- $$('[data-d]').forEach(b=>b.onclick=()=>{h.splice(b.dataset.d,1);ls.s('vts-hs',h);hist()})};
-seg(q('#kb'),()=>kbF,v=>kbF=v,()=>kb());
-seg(q('#hs'),()=>hsF,v=>hsF=v,()=>hist());
+hist=function(){const h=ls.g('vts-hs',[]),folders=hsFolders();
+ if(hsFolder!=='__all__'&&hsFolder!=='__none__'&&!folders.includes(hsFolder))hsFolder='__all__';
+ const byMode=h.map((x,i)=>[x,i]).filter(([x])=>!hsF||x.mode==(hsF=='dang'?'dang':'nn'));
+ const cntOf=f=>byMode.filter(([x])=>(x.folder||'')===f).length;
+ const noneCnt=cntOf('');
+ const v=byMode.filter(([x])=>hsFolder==='__all__'?!0:hsFolder==='__none__'?!(x.folder||''):(x.folder||'')===hsFolder);
+ const isCustomFd=hsFolder!=='__all__'&&hsFolder!=='__none__';
+ const fbar=`<div class="hs-fbar"><div class="hs-ftabs"><button type="button" class="btn${hsFolder==='__all__'?' on':''}" data-hf="__all__">Tất cả (${byMode.length})</button>${folders.map(f=>`<button type="button" class="btn${hsFolder===f?' on':''}" data-hf="${at(f)}">📁 ${esc(f)} (${cntOf(f)})</button>`).join('')}${folders.length?`<button type="button" class="btn${hsFolder==='__none__'?' on':''}" data-hf="__none__">Chưa phân loại (${noneCnt})</button>`:''}</div><div class="hs-facts"><button type="button" class="btn" id="hs-add-fd">+ Thư mục mới</button>${isCustomFd?`<button type="button" class="btn" id="hs-ren-fd">Đổi tên thư mục</button><button type="button" class="btn" id="hs-del-fd">Xóa thư mục</button>`:''}</div></div>`;
+ const listHtml=v.length?v.map(([x,i])=>{const title=x.name||x.S.ty||'(Chưa có trích yếu)';const subTy=x.name&&x.S.ty&&x.name!==x.S.ty?` · Trích yếu: ${esc(x.S.ty)}`:'';const fdTag=x.folder?` <span class="tag">📁 ${esc(x.folder)}</span>`:'';return `<div class="it ok" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b>${esc(title)}</b>${fdTag}<br><span class="mu">${x.mode=='nn'?'Khối Chính quyền':'Khối Đảng'} · ${esc(x.S.type)} · ${new Date(x.t).toLocaleString('vi-VN')}${subTy}</span></div><div class="bar" style="margin:0"><button class="btn" data-o="${i}">Mở</button><button class="btn" data-rn="${i}">Đổi tên</button><button class="btn" data-mv="${i}">Thư mục</button><button class="btn" data-d="${i}">Xóa</button></div></div>`}).join(''):`<p class="mu">${isCustomFd?`Thư mục “${esc(hsFolder)}” chưa có bản lưu nào.`:'Chưa có bản nào được lưu.'}</p>`;
+ $('#hs').innerHTML=fbar+listHtml;
+ $$('[data-hf]').forEach(b=>b.onclick=()=>{hsFolder=b.dataset.hf;hist()});
+ const addFd=q('#hs-add-fd');if(addFd)addFd.onclick=async()=>{const nm=await uiPrompt('Tạo thư mục mới','','VD: Công văn 2026','Tạo');if(nm===null)return;if(!nm){msg('Tên thư mục không được để trống.');return}const f=_ensureFolder(nm);hsFolder=f;hist();msg('Đã tạo thư mục “'+f+'”.')};
+ const renFd=q('#hs-ren-fd');if(renFd)renFd.onclick=async()=>{const oldF=hsFolder;const nm=await uiPrompt('Đổi tên thư mục',oldF,'Nhập tên thư mục mới...','Cập nhật');if(nm===null)return;if(!nm){msg('Tên thư mục không được để trống.');return}if(nm===oldF)return;const cur=hsFolders();if(cur.some(f=>f!==oldF&&f.toLowerCase()===nm.toLowerCase())){msg('Thư mục “'+nm+'” đã tồn tại.');return}saveHsFolders(cur.map(f=>f===oldF?nm:f));h.forEach(x=>{if(x.folder===oldF)x.folder=nm});ls.s('vts-hs',h);if(ls.g('vts-last-folder','')===oldF)ls.s('vts-last-folder',nm);hsFolder=nm;hist();msg('Đã đổi tên thư mục thành “'+nm+'”.')};
+ const delFd=q('#hs-del-fd');if(delFd)delFd.onclick=async()=>{const oldF=hsFolder;if(!(await uiConfirm('Bạn có chắc muốn xóa thư mục “'+oldF+'”? Các bản lưu bên trong sẽ được chuyển về mục Chưa phân loại.','Xác nhận xóa thư mục')))return;saveHsFolders(hsFolders().filter(f=>f!==oldF));h.forEach(x=>{if(x.folder===oldF)x.folder=''});ls.s('vts-hs',h);if(ls.g('vts-last-folder','')===oldF)ls.s('vts-last-folder','');hsFolder='__all__';hist();msg('Đã xóa thư mục “'+oldF+'”.')};
+ $$('[data-o]').forEach(b=>b.onclick=()=>{const x=h[b.dataset.o];setMode(x.mode);S=drafts[x.mode]={...blankDraft(x.mode),...x.S};if(!T[mode].some(t=>t[0]==S.type))S.type='KH';fillSel();vis();sync();render();nav('soan')});
+ $$('[data-rn]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.rn,x=h[i];if(!x)return;const cur=x.name||x.S.ty||'';const nm=await uiPrompt('Đổi tên bản lưu',cur,'Nhập tên mới...','Cập nhật');if(nm===null)return;if(!nm){msg('Tên bản lưu không được để trống.');return}x.name=nm;ls.s('vts-hs',h);hist();msg('Đã đổi tên bản lưu.')});
+ $$('[data-mv]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.mv,x=h[i];if(!x)return;const r=await _folderDlg({title:'Chuyển vào thư mục',showName:false,defFolder:x.folder||'',okText:'Cập nhật'});if(!r)return;x.folder=r.folder||'';ls.s('vts-hs',h);hist();msg(x.folder?'Đã chuyển vào thư mục “'+x.folder+'”.':'Đã chuyển về mục Chưa phân loại.')});
+ $$('[data-d]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.d,x=h[i];if(!x)return;const title=x.name||x.S.ty||'(Bản lưu)';if(!(await uiConfirm('Bạn có chắc muốn xóa bản lưu “'+title+'” khỏi lịch sử?','Xác nhận xóa bản lưu')))return;h.splice(i,1);ls.s('vts-hs',h);hist();msg('Đã xóa bản lưu.')})};
+const kbSeg=seg(q('#kb'),()=>kbF,v=>kbF=v,()=>kb());
+const hsSeg=seg(q('#hs'),()=>hsF,v=>hsF=v,()=>hist());
+function syncModeFilters(m){const f=m==='dang'?'dang':'cq';kbF=f;hsF=f;if(kbSeg._mark)kbSeg._mark();if(hsSeg._mark)hsSeg._mark();kb();hist()}
 
 /* ---------- Làm mới ---------- */
-fillLead();setMode(mode);
+fillLead();setMode(mode);syncModeFilters(mode);
 })();
