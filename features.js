@@ -619,6 +619,7 @@
     };
     const addBtn = q('#pf-add');
     if (addBtn) addBtn.onclick = () => {
+      if (PF.items.length >= 10) { msg('Tối đa 10 hồ sơ cá nhân trên trình duyệt này.'); return; }
       const idx = PF.items.length + 1;
       const np = defaultProfile('pf-' + Date.now(), 'Hồ sơ cá nhân ' + idx);
       PF.items.push(np);

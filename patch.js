@@ -130,28 +130,51 @@ const sent=s=>{s=s.toLowerCase();return(s[0].toUpperCase()+s.slice(1)).replace(/
 
 function orgUI(box,key,F){const nodes=()=>OT[key],by=i=>nodes().find(x=>x.id==i),dp=x=>x.p&&by(x.p)?1+dp(by(x.p)):0;
  const w=document.createElement('div');
- w.innerHTML='<label>Chọn cơ quan chủ quản (cấp trên)</label><select class="op"></select><label>Chọn cơ quan ban hành (cấp dưới của cơ quan chủ quản)</label><select class="oo"></select><label>Thêm đơn vị cấp dưới cho cơ quan chủ quản đang chọn</label><div class="row"><input class="on" placeholder="TÊN ĐƠN VỊ (in hoa)"><input class="oa" placeholder="Viết tắt (nếu có)"></div><button class="btn" style="margin-top:6px">+ Thêm đơn vị</button>';
+ w.innerHTML='<label>Chọn cơ quan chủ quản (cấp trên)</label><select class="op"></select><label>Chọn cơ quan ban hành (cấp dưới của cơ quan chủ quản)</label><select class="oo"></select><label>Thêm đơn vị cấp dưới cho cơ quan chủ quản đang chọn (lưu cục bộ trên trình duyệt)</label><div class="row"><input class="on" maxlength="120" placeholder="TÊN ĐƠN VỊ (in hoa)"><input class="oa" maxlength="20" placeholder="Viết tắt (nếu có)"></div><div class="bar" style="margin-top:6px"><button type="button" class="btn add-u">+ Thêm đơn vị</button><button type="button" class="btn del-u" style="display:none">Xóa đơn vị tự thêm</button><button type="button" class="btn rst-u" style="display:none">Khôi phục gốc</button></div>';
  box.firstElementChild.after(w);
- const sp=w.querySelector('.op'),so=w.querySelector('.oo');
+ const sp=w.querySelector('.op'),so=w.querySelector('.oo'),bAdd=w.querySelector('.add-u'),bDel=w.querySelector('.del-u'),bRst=w.querySelector('.rst-u');
  const isRoom=x=>/^PHÒNG\b/i.test(x.n)&&!nodes().some(c=>c.p===x.id);
  const tree=()=>{const out=[],seen=new Set(),walk=pid=>{nodes().filter(x=>(x.p||'')==pid&&!isRoom(x)).forEach(x=>{if(seen.has(x.id))return;seen.add(x.id);out.push(x);walk(x.id)})};walk('');nodes().filter(x=>!isRoom(x)&&!seen.has(x.id)).forEach(x=>out.push(x));return out};
+ const updBtns=()=>{const cur=by(so.value);const hasCustom=nodes().some(x=>x.custom);bDel.style.display=(cur&&cur.custom&&!nodes().some(c=>c.p===cur.id))?'':'none';bRst.style.display=hasCustom?'':'none'};
  const fillP=()=>{sp.innerHTML=tree().map(x=>`<option value="${x.id}">${'– '.repeat(dp(x))+esc(x.f)}</option>`).join('')};
- const fillO=()=>{so.innerHTML=nodes().filter(x=>x.p==sp.value).map(x=>`<option value="${x.id}">${esc(x.n)}</option>`).join('')||'<option value="">(chưa có đơn vị cấp dưới)</option>'};
- const apply=()=>{const p=by(sp.value),o=by(so.value);if(p)setC(F.P,p.f);if(o){setC(F.O,o.n);if(o.a)setC(F.A,o.a);if(F.N)setC(F.N,o.s||sent(o.f))}render()};
- const init=()=>{fillP();const p=nodes().find(x=>!isRoom(x)&&x.f==C[F.P]);if(p)sp.value=p.id;fillO();const o=nodes().find(x=>x.p==sp.value&&(x.n==C[F.O]||x.f==C[F.O]||C[F.O]&&x.n.indexOf(C[F.O])===0));if(o)so.value=o.id};
+ const fillO=()=>{so.innerHTML=nodes().filter(x=>x.p==sp.value).map(x=>`<option value="${x.id}">${esc(x.n)}${x.custom?' (tự thêm)':''}</option>`).join('')||'<option value="">(chưa có đơn vị cấp dưới)</option>';updBtns()};
+ const apply=()=>{const p=by(sp.value),o=by(so.value);if(p)setC(F.P,p.f);if(o){setC(F.O,o.n);if(o.a)setC(F.A,o.a);if(F.N)setC(F.N,o.s||sent(o.f))}updBtns();render()};
+ const init=()=>{fillP();const p=nodes().find(x=>!isRoom(x)&&x.f==C[F.P]);if(p)sp.value=p.id;fillO();const o=nodes().find(x=>x.p==sp.value&&(x.n==C[F.O]||x.f==C[F.O]||C[F.O]&&x.n.indexOf(C[F.O])===0));if(o)so.value=o.id;updBtns()};
  sp.onchange=()=>{fillO();apply()};so.onchange=apply;
- w.querySelector('button').onclick=()=>{const n=w.querySelector('.on').value.trim().toUpperCase();if(!n){msg('Hãy nhập tên đơn vị cần thêm.');return}
-  const pid=sp.value,nid=key+Date.now();nodes().push(mk(nid,n,pid,w.querySelector('.oa').value.trim().toUpperCase()));ls.s('vts-org',OT);
-  fillP();sp.value=pid;fillO();so.value=nid;apply();w.querySelector('.on').value='';w.querySelector('.oa').value='';msg('Đã thêm đơn vị “'+n+'” và áp dụng làm cơ quan ban hành.')};
+ bAdd.onclick=()=>{
+  const n=w.querySelector('.on').value.replace(/\s+/g,' ').trim().toUpperCase();
+  const a=w.querySelector('.oa').value.replace(/\s+/g,'').trim().toUpperCase();
+  if(n.length<3){msg('Tên đơn vị phải có ít nhất 3 ký tự.');return}
+  const pid=sp.value;
+  if(nodes().some(x=>x.p==pid&&x.n==n)){msg('Đơn vị “'+n+'” đã tồn tại trong cơ quan chủ quản này.');return}
+  if(nodes().filter(x=>x.custom).length>=30){msg('Tối đa 30 đơn vị tự thêm mỗi khối. Hãy xóa bớt đơn vị không dùng.');return}
+  const nid=key+Date.now();
+  const item=mk(nid,n,pid,a);item.custom=true;
+  nodes().push(item);ls.s('vts-org',OT);
+  fillP();sp.value=pid;fillO();so.value=nid;apply();w.querySelector('.on').value='';w.querySelector('.oa').value='';msg('Đã thêm đơn vị “'+n+'” (chỉ lưu trên trình duyệt của bạn).')};
+ bDel.onclick=()=>{
+  const cur=by(so.value);if(!cur||!cur.custom)return;
+  if(nodes().some(c=>c.p===cur.id)){msg('Không thể xóa khi vẫn còn đơn vị cấp dưới trực thuộc.');return}
+  OT[key]=nodes().filter(x=>x.id!==cur.id);ls.s('vts-org',OT);
+  const pid=sp.value;fillP();sp.value=pid;fillO();apply();msg('Đã xóa đơn vị tự thêm “'+cur.n+'”.')};
+ bRst.onclick=()=>{
+  OT[key]=nodes().filter(x=>!x.custom);ls.s('vts-org',OT);
+  init();apply();msg('Đã khôi phục danh mục đơn vị gốc.')};
  init()}
 
 function led(box,t,title){const h=document.createElement('b');h.style.cssText='display:block;margin-top:14px';h.textContent=title;const w=document.createElement('div');box.append(h,w,t);t.style.display='none';
  const rows=()=>t.value.split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a.some(Boolean)),
- coll=()=>[...w.querySelectorAll('.lr')].map(r=>[...r.querySelectorAll('input')].map(i=>i.value.trim())),
+ coll=()=>[...w.querySelectorAll('.lr')].map(r=>[...r.querySelectorAll('input')].map(i=>i.value.replace(/\|/g,'').trim())),
  save=a=>{t.value=a.map(r=>r.join(' | ')).join('\n');t.dispatchEvent(new Event('input',{bubbles:true}))},
- draw=(a=rows())=>{w.innerHTML='<div class="mu" style="font-size:12px">Chức vụ · Họ và tên · Quyền hạn ký (nếu có)</div>'+a.map((r,i)=>`<div class="lr">${[0,1,2].map(j=>`<input value="${at(r[j]||'')}" placeholder="${['Chức vụ','Họ và tên','VD: KT. GIÁM ĐỐC'][j]}">`).join('')}<button class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('')+'<button class="btn" data-a="1">+ Thêm người</button>'};
+ draw=(a=rows())=>{w.innerHTML='<div class="mu" style="font-size:12px">Chức vụ · Họ và tên · Quyền hạn ký (nếu có, tối đa 30 người)</div>'+a.map((r,i)=>`<div class="lr">${[0,1,2].map(j=>`<input maxlength="80" value="${at(r[j]||'')}" placeholder="${['Chức vụ','Họ và tên','VD: KT. GIÁM ĐỐC'][j]}">`).join('')}<button type="button" class="btn" data-x="${i}" title="Xóa">×</button></div>`).join('')+'<button type="button" class="btn" data-a="1">+ Thêm người</button>'};
  w.addEventListener('input',()=>save(coll()));
- w.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=coll();if(b.dataset.x!=null){a.splice(+b.dataset.x,1);save(a);draw()}else{a.push(['','','']);draw(a)}});
+ w.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=coll();
+  if(b.dataset.x!=null){a.splice(+b.dataset.x,1);save(a);draw()}
+  else{
+   if(a.length>=30){msg('Danh bạ lãnh đạo tối đa 30 người cho mỗi khối.');return}
+   if(a.some(r=>!r[0]&&!r[1])){msg('Hãy nhập thông tin vào dòng trống hiện có trước khi thêm người mới.');return}
+   a.push(['','','']);draw(a)
+  }});
  draw()}
 
 orgUI(Lc,'cq',{P:'nP',O:'nO',A:'nA',N:'nOn'});

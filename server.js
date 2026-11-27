@@ -8,12 +8,23 @@ app.use(express.json({ limit: '64kb' }));
 app.use(express.static(__dirname));
 
 const reviewsStore = [];
+const reviewHits = new Map();
 
 app.get('/api/reviews', (_req, res) => {
   res.json(reviewsStore);
 });
 
 app.post('/api/reviews', (req, res) => {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  const recent = (reviewHits.get(ip) || []).filter(t => now - t < 60000);
+  if (recent.length >= 5) {
+    return res.status(429).json({ error: 'Too many submissions, please wait a minute.' });
+  }
+  recent.push(now);
+  reviewHits.set(ip, recent);
+  if (reviewHits.size > 1000) reviewHits.clear();
+
   const b = req.body || {};
   const stars = Number(b.stars);
   if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
