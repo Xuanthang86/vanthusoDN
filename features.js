@@ -51,17 +51,32 @@
     defaultSignerName: '',
     defaultSignerPower: '',
     fontSizePt: 14,
-    lineHeight: 1.3,
+    lineHeight: 1.0,
     indentCm: 1.0,
     marginPreset: 'nd30',
-    marginsMm: { top: 20, bottom: 20, left: 30, right: 15 },
+    marginsMm: { top: 20, bottom: 20, left: 30, right: 20 },
     autoNormalizeText: true,
-    perType: {}
+    perType: {},
+    v: 2
   });
 
   function loadProfiles() {
     const raw = ls.g(PF_KEY, null);
-    if (raw && Array.isArray(raw.items) && raw.items.length) return raw;
+    if (raw && Array.isArray(raw.items) && raw.items.length) {
+      let dirty = false;
+      raw.items.forEach(p => {
+        if (!p.v || p.v < 2) {
+          if (p.marginPreset === 'nd30' && p.marginsMm && p.marginsMm.right === 15) {
+            p.marginsMm.right = 20;
+          }
+          if (p.lineHeight === 1.3) p.lineHeight = 1.0;
+          p.v = 2;
+          dirty = true;
+        }
+      });
+      if (dirty) ls.s(PF_KEY, raw);
+      return raw;
+    }
     return { activeId: 'default', items: [defaultProfile()] };
   }
   let PF = loadProfiles();
@@ -73,9 +88,9 @@
     const ov = (p.perType && p.perType[docType]) || {};
     return {
       fontSizePt: Number(ov.fontSizePt || p.fontSizePt || 14),
-      lineHeight: Number(ov.lineHeight || p.lineHeight || 1.3),
+      lineHeight: Number(ov.lineHeight || p.lineHeight || 1.0),
       indentCm: ov.indentCm !== undefined ? Number(ov.indentCm) : Number(p.indentCm ?? 1.0),
-      marginsMm: { ...(p.marginsMm || { top: 20, bottom: 20, left: 30, right: 15 }), ...(ov.marginsMm || {}) },
+      marginsMm: { ...(p.marginsMm || { top: 20, bottom: 20, left: 30, right: 20 }), ...(ov.marginsMm || {}) },
       autoNormalizeText: p.autoNormalizeText !== false
     };
   }
@@ -147,7 +162,9 @@
       xml = xml.replace(/(<w:jc w:val="both"\/>\s*<w:rPr><w:sz w:val=")28(")/g, `$1${bodySz}$2`);
       xml = xml.replace(/(<w:sz w:val=")28("\/>\s*<w:szCs w:val=")28(")/g, `$1${bodySz}$2${bodySz}$3`);
     }
-    xml = xml.replace(/<w:spacing([^>]*?)w:line="312"/g, `<w:spacing$1w:line="${lineVal}"`);
+    if (lineVal !== 240) {
+      xml = xml.replace(/(<w:spacing w:before="(?:0|120)" w:after="(?:0|120)" )w:line="240"([^>]*\/><w:ind[^>]*\/><w:jc w:val="both")/g, `$1w:line="${lineVal}"$2`);
+    }
     xml = xml.replace(/w:firstLine="567"/g, `w:firstLine="${indentTwips}"`);
     xml = xml.replace(
       /<w:pgMar w:top="\d+" w:right="\d+" w:bottom="\d+" w:left="\d+"/,
@@ -534,8 +551,9 @@
           </div>
           <div><label>Giãn dòng đoạn văn</label>
             <select id="pf-lh">
-              <option value="1.15"${p.lineHeight == 1.15 ? ' selected' : ''}>1.15 (chặt)</option>
-              <option value="1.3"${p.lineHeight == 1.3 ? ' selected' : ''}>1.3 (chuẩn NĐ 30)</option>
+              <option value="1"${p.lineHeight == 1 ? ' selected' : ''}>1.0 (chuẩn)</option>
+              <option value="1.15"${p.lineHeight == 1.15 ? ' selected' : ''}>1.15 (vừa)</option>
+              <option value="1.3"${p.lineHeight == 1.3 ? ' selected' : ''}>1.3 (rộng)</option>
               <option value="1.5"${p.lineHeight == 1.5 ? ' selected' : ''}>1.5 (thoáng)</option>
             </select>
           </div>
@@ -550,8 +568,8 @@
           </div>
           <div><label>Lề trang A4 (mm: trên/dưới/trái/phải)</label>
             <select id="pf-mar">
-              <option value="nd30"${p.marginPreset === 'nd30' ? ' selected' : ''}>Chuẩn NĐ 30 (20 / 20 / 30 / 15)</option>
-              <option value="thoang"${p.marginPreset === 'thoang' ? ' selected' : ''}>Rộng đều (22 / 22 / 32 / 18)</option>
+              <option value="nd30"${p.marginPreset === 'nd30' ? ' selected' : ''}>Chuẩn (20 / 20 / 30 / 20)</option>
+              <option value="thoang"${p.marginPreset === 'thoang' ? ' selected' : ''}>Hẹp phải (20 / 20 / 30 / 15)</option>
               <option value="max"${p.marginPreset === 'max' ? ' selected' : ''}>Lề trên/dưới tối đa (25 / 25 / 35 / 20)</option>
             </select>
           </div>
@@ -656,14 +674,14 @@
       p.defaultSignerRole = q('#pf-cv').value.trim();
       p.defaultSignerName = q('#pf-ten').value.trim();
       p.fontSizePt = Number(q('#pf-sz').value) || 14;
-      p.lineHeight = Number(q('#pf-lh').value) || 1.3;
+      p.lineHeight = Number(q('#pf-lh').value) || 1.0;
       p.indentCm = Number(q('#pf-ind').value);
       p.marginPreset = q('#pf-mar').value;
       p.marginsMm = p.marginPreset === 'thoang'
-        ? { top: 22, bottom: 22, left: 32, right: 18 }
+        ? { top: 20, bottom: 20, left: 30, right: 15 }
         : p.marginPreset === 'max'
           ? { top: 25, bottom: 25, left: 35, right: 20 }
-          : { top: 20, bottom: 20, left: 30, right: 15 };
+          : { top: 20, bottom: 20, left: 30, right: 20 };
       p.autoNormalizeText = q('#pf-norm').checked;
       saveProfiles();
       refreshEditorProfileSelect();
@@ -754,7 +772,9 @@
         Object.assign(S, lastAnalysis.draft);
         mode = lastAnalysis.detectedMode;
         const blob = await makeDocx();
-        const fn = `ToiUu-${lastAnalysis.detectedType}-${(lastAnalysis.fileName || 'van-ban').replace(/\.[^.]+$/, '').replace(/[^\w-]/g, '_')}.docx`;
+        const fn = typeof docFn === 'function'
+          ? docFn(lastAnalysis.detectedType, lastAnalysis.draft.date || S.date, lastAnalysis.draft.ty || lastAnalysis.fileName)
+          : `${lastAnalysis.detectedType}.docx`;
         const u = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = u;

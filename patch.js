@@ -53,7 +53,7 @@ const _dx=docXml;docXml=function(){let x=_dx();
  if(kind()=='bb')x=x.replace(/<w:p>(?:(?!<w:p>).)*?Nơi nhận:<\/w:t><\/w:r><\/w:p>/s,'');
  if(kind()=='pt'&&window._pt&&_pt.solo){let n=0;const mc=_pt.mc;
   x=x.replace(/<w:tr>.*?<\/w:tr>/gs,r=>{if(n++<5)return r;const tc=r.match(/<w:tc>.*?<\/w:tc>/gs);if(!tc)return r;
-   const k=tc[tc.length-1].replace(/<w:tcW[^>]*\/>/,`<w:tcW w:w="9355" w:type="dxa"/><w:gridSpan w:val="${mc}"/>`);return r.replace(/<w:tc>.*<\/w:tc>/s,()=>k)})}
+   const k=tc[tc.length-1].replace(/<w:tcW[^>]*\/>/,`<w:tcW w:w="9071" w:type="dxa"/><w:gridSpan w:val="${mc}"/>`);return r.replace(/<w:tc>.*<\/w:tc>/s,()=>k)})}
  return x};
 
 const _ck=check;check=function(t){return _ck(t).filter(r=>!(kind()=='bb'&&/Thiếu Nơi nhận/.test(r[1]))&&!(isQBase()&&/kèm theo Quyết định/.test(r[1]))&&!(isQ()&&(/Thiếu chức vụ hoặc họ tên/.test(r[1])||/Thiếu Nơi nhận/.test(r[1])))).map(r=>[r[0],r[1].replace(/([Kk])hối Nhà nước/g,'$1hối Chính quyền')])};
@@ -75,7 +75,7 @@ const _sm=setMode;setMode=function(m){const ch=m!=mode;
 /* ---------- In / Lưu PDF (mở cửa sổ riêng) ---------- */
 $('#print').onclick=()=>{const w=window.open('','_blank');
  if(!w){try{window.print()}catch(e){msg('Trình duyệt chặn cửa sổ in – hãy cho phép cửa sổ bật lên rồi bấm lại.')}return}
- w.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>'+esc(S.ty||'Văn bản')+'</title><style>@page{size:A4;margin:20mm 15mm 20mm 30mm}body{margin:0;font:15px/1.5 "Times New Roman",Times,serif;color:#000}.hd{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;text-align:center;font-size:13px;line-height:1.2}p{margin:3px 0;text-align:justify}.ln{border-top:1px solid #000;margin:2px auto}</style></head><body>'+$('#paper').innerHTML+'</body></html>');
+ w.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>'+esc(S.ty||'Văn bản')+'</title><style>@page{size:A4;margin:20mm 20mm 20mm 30mm}body{margin:0;font:15px/1.5 "Times New Roman",Times,serif;color:#000}.hd{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;text-align:center;font-size:13px;line-height:1.2}p{margin:3px 0;text-align:justify}.ln{border-top:1px solid #000;margin:2px auto}</style></head><body>'+$('#paper').innerHTML+'</body></html>');
  w.document.close();w.focus();setTimeout(()=>{w.print()},500);msg('Đã mở cửa sổ in – chọn “Lưu dưới dạng PDF” để lưu.')};
 
 /* ---------- Danh mục đơn vị phân cấp ---------- */

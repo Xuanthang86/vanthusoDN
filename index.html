@@ -247,27 +247,27 @@ const plainT=()=>mode=='nn'&&['QC','QyĐ'].includes(S.type);
 function build(){const nn=mode=='nn',t=TY(S.type),kd=t[3],ty=S.ty.replace(/^V\/v\s*/i,''),plain=plainT(),nq=nn&&S.type=='NQ',L=[],R=[],B=[];
 if(!plain){if(!nq)splitOrg(nn?C.nP:C.dP).forEach(x=>L.push({x}));
 const og=splitOrg(nq?C.nqO:(nn?C.nO:C.dO));og.forEach((x,i)=>L.push({x,b:1,rule:nn&&i==og.length-1?'s':''}));if(!nn)L.push({x:'*'});
-if(kd!='pt'&&!noSo())L.push({x:soLine(),gap:1,so:1});
+if(kd!='pt'&&!noSo())L.push({x:soLine(),gap:1,so:1,sz:13});
 if(kd=='cv'&&ty)L.push({x:'V/v '+ty,i:1,sz:12,gap:1});
 if(nn)R.push({x:'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',b:1,sz:12},{x:'Độc lập - Tự do - Hạnh phúc',b:1,sz:13,rule:'g'});else R.push({x:'ĐẢNG CỘNG SẢN VIỆT NAM',b:1,sz:15,rule:'g'});
-R.push({x:dt(),i:1,gap:1})}
+R.push({x:dt(),i:1,sz:13,gap:1})}
 const P=(rs,o)=>B.push({rs:typeof rs=='string'?[{x:rs}]:rs,...o});
 if(kd!='cv'){let tyr=ty;if(nn&&kd=='qd'&&ty&&!/^Về\s/i.test(ty))tyr='Về việc '+ty;if(nq)tyr=tyr.toUpperCase();
 P([{x:t[1].toUpperCase(),b:1}],{al:'c',sz:nn?14:16,gap:1});P([{x:tyr,b:1}],{al:'c'});if(!plain)B.push(nn?{rule:'t'}:{rs:[{x:'- - - - -'}],al:'c'})}
-if(kd=='cv'||kd=='pt'||(kd=='tl'&&S.kg.trim()))P(((!nn&&S.type=='TTr')?'Kính trình':'Kính gửi')+': '+(S.kg||'…'),{al:'c',gap:1});
+if(kd=='cv'||kd=='pt'||(kd=='tl'&&S.kg.trim()))P(((!nn&&S.type=='TTr')?'Kính trình':'Kính gửi')+': '+(S.kg||'…'),{al:'c',kg:1});
 const cl=S.cc.split('\n').filter(x=>x.trim());
-if(nn&&kd=='qd'){S.tq.split('\n').filter(x=>x.trim()).forEach(l=>P([{x:l.trim(),b:1}],{al:'c'}));cl.forEach(l=>P([{x:l.trim(),i:1}],{ind:1}));P([{x:S.type=='NQ'?'QUYẾT NGHỊ:':'QUYẾT ĐỊNH:',b:1}],{al:'c'})}
-else cl.forEach(l=>P([{x:l.trim(),i:!nn}],{ind:1}));
+if(nn&&kd=='qd'){S.tq.split('\n').filter(x=>x.trim()).forEach(l=>P([{x:l.trim(),b:1}],{al:'c'}));cl.forEach(l=>P([{x:l.trim(),i:1}],{ind:1,body:1}));P([{x:S.type=='NQ'?'QUYẾT NGHỊ:':'QUYẾT ĐỊNH:',b:1}],{al:'c'})}
+else cl.forEach(l=>P([{x:l.trim(),i:!nn}],{ind:1,body:1}));
 S.nd.split('\n').filter(x=>x.trim()).forEach(l=>{l=l.trim();let m;
 if(kd=='pt'&&/^Vậy phòng/.test(l))l=`Vậy phòng ${S.dvn||C.dvn||'…'} kính trình Lãnh đạo Trung tâm xem xét, phê duyệt.`;
 if(kd=='pt'&&/^Người trình:/.test(l)&&S.nt)l='Người trình: '+S.nt;
-if(/^\((Ban hành )?[Kk]èm theo/.test(l))P([{x:l,i:1}],{al:'c'});
-else if(/^Chương\s/.test(l)||(l==l.toUpperCase()&&/[A-ZÀ-Ỹ]{3}/.test(l)&&!/^[IVX]+\./.test(l)))P([{x:l,b:1}],{al:'c'});
-else if(/^[IVX]+\.\s/.test(l))P([{x:l,b:1}],{ind:1});
-else if(m=l.match(/^(Điều \d+\.)(.*)$/)){if(plain&&!/[.;:,]$/.test(m[2].trim())&&l.length<110)P([{x:l,b:1}],{ind:1});else P([{x:m[1],b:1},{x:m[2]}],{ind:1})}
-else if(/^\d+\.\s+[^\d…]{6,}$/.test(l)&&!/[.;:,…]$/.test(l)&&l.length<90)P([{x:l,b:1}],{ind:1});
-else if(['gm','bb','pt'].includes(kd)&&(m=l.match(/^((?:Tới dự|Chủ trì|Thời gian|Địa điểm|Thành phần|Thư ký|Nội dung|Người trình|Các tài liệu)[^:]{0,40}:)(.*)$/)))P([{x:m[1],b:1},{x:m[2]}],{ind:1});
-else P(l,{ind:1})});
+if(/^\((Ban hành )?[Kk]èm theo/.test(l))P([{x:l,i:1}],{al:'c',body:1});
+else if(/^Chương\s/.test(l)||(l==l.toUpperCase()&&/[A-ZÀ-Ỹ]{3}/.test(l)&&!/^[IVX]+\./.test(l)))P([{x:l,b:1}],{al:'c',body:1});
+else if(/^[IVX]+\.\s/.test(l))P([{x:l,b:1}],{ind:1,body:1});
+else if(m=l.match(/^(Điều \d+\.)(.*)$/)){if(plain&&!/[.;:,]$/.test(m[2].trim())&&l.length<110)P([{x:l,b:1}],{ind:1,body:1});else P([{x:m[1],b:1},{x:m[2]}],{ind:1,body:1})}
+else if(/^\d+\.\s+[^\d…]{6,}$/.test(l)&&!/[.;:,…]$/.test(l)&&l.length<90)P([{x:l,b:1}],{ind:1,body:1});
+else if(['gm','bb','pt'].includes(kd)&&(m=l.match(/^((?:Tới dự|Chủ trì|Thời gian|Địa điểm|Thành phần|Thư ký|Nội dung|Người trình|Các tài liệu)[^:]{0,40}:)(.*)$/)))P([{x:m[1],b:1},{x:m[2]}],{ind:1,body:1});
+else P(l,{ind:1,body:1})});
 const nr=S.nn.split('\n').map(x=>x.trim()).filter(Boolean);let F;
 if(plain)F={k:'none'};
 else if(kd=='pt'){const phs=S.phOn?S.ph.split('\n').map(x=>x.trim()).filter(Boolean):[];
@@ -277,9 +277,10 @@ const mc=Math.max(r1.length,r2.length),pad=a=>[...Array(mc-a.length).fill({h:'',
 else F={k:kd=='bb'?'bb':'std',nr,q:S.quyen,c:S.cv,ten:S.ten,tk:S.tk};
 return{L,R,B,F,plain}}
 const rh=rs=>rs.map(r=>{let x=esc(r.x);if(r.b)x=`<b>${x}</b>`;if(r.i)x=`<i>${x}</i>`;return x}).join('');
-function render(){const m=build(),h=a=>a.map(o=>{const st=`${o.sz?`font-size:${o.sz}px;`:''}${o.gap?'margin-top:5px;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic':''}`;
-if(o.rule=='g')return `<div style="${st}"><span style="display:inline-block;border-bottom:1px solid #000;padding-bottom:4px">${esc(o.x)}</span></div>`;
-if(o.rule=='s')return `<div style="${st}"><span style="display:inline-block">${esc(o.x)}<span style="display:block;border-top:1px solid #000;width:50%;margin:4px auto 0"></span></span></div>`;
+const _splitHd=(L,R)=>{const iL=L.findIndex(o=>o.so||/^V\/v\s/i.test(o.x));const L1=iL<0?L:L.slice(0,iL),L2=iL<0?[]:L.slice(iL);const R1=R.length?R.slice(0,-1):[],R2=R.length?[R[R.length-1]]:[];return{L1,L2,R1,R2}};
+function render(){const m=build(),h=a=>a.map(o=>{const st=`${o.sz?`font-size:${o.sz}px;`:''}${o.gap?'margin-top:6px;':''}${o.b?'font-weight:700;':''}${o.i?'font-style:italic':''}`;
+if(o.rule=='g')return `<div style="${st}"><span style="display:inline-block;border-bottom:1px solid #000;padding-bottom:3px">${esc(o.x)}</span></div>`;
+if(o.rule=='s')return `<div style="${st}"><span style="display:inline-block">${esc(o.x)}<span style="display:block;border-top:1px solid #000;width:50%;margin:3px auto 0"></span></span></div>`;
 return `<div style="${st}">${esc(o.x)}</div>`}).join('');
 const sg=(q,c,ten)=>[q,c].filter(Boolean).map(x=>`<b>${esc(x)}</b>`).join('<br>')+`<div style="height:60px"></div><b>${esc(ten)}</b>`;
 const nrh=a=>`<div style="margin-left:1cm"><b style="font-size:12px"><i>Nơi nhận:</i></b>${a.map(l=>`<div style="font-size:12px">${esc(l)}</div>`).join('')}</div>`;
@@ -288,34 +289,41 @@ if(F.k=='std')ft=`<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:1
 else if(F.k=='bb')ft=`<div style="display:grid;grid-template-columns:1fr 1fr;text-align:center;margin-top:14px"><div><b>THƯ KÝ</b><div style="height:60px"></div><b>${esc(F.tk)}</b></div><div>${sg(F.q,F.c,F.ten)}</div></div><div style="margin-top:8px">${nrh(F.nr)}</div>`;
 else if(F.k=='pt')ft='<table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-top:14px;text-align:center">'+F.rows.map((r,i)=>`<tr>${r.map(c=>`<td style="padding:4px;vertical-align:top">${c.h?`<b>${esc(c.h)}</b>`:''}</td>`).join('')}</tr><tr style="height:56px">${r.map(()=>'<td></td>').join('')}</tr><tr>${r.map(c=>`<td style="padding:4px;vertical-align:top">${c.n?`<b>${esc(c.n)}</b>`:''}</td>`).join('')}</tr>${i==0?'<tr style="height:14px"><td></td></tr>':''}`).join('')+'</table>';
 const bl=m.B.map(b=>b.rule?'<div class="ln" style="width:90px"></div>':`<p style="${b.al=='c'?'text-align:center;':''}${b.ind?'text-indent:1cm;':''}${b.sz?`font-size:${b.sz}px;`:''}${b.gap?'margin-top:8px':''}">${rh(b.rs)}</p>`).join('');
-$('#paper').innerHTML=`${m.plain?'':`<div class="hd"><div>${h(m.L)}</div><div>${h(m.R)}</div></div>`}${bl}${ft}`}
+let hdHtml='';if(!m.plain){const{L1,L2,R1,R2}=_splitHd(m.L,m.R);hdHtml=`<div class="hd"><div>${h(L1)}</div><div>${h(R1)}</div></div><div class="hd"><div>${h(L2)}</div><div>${h(R2)}</div></div>`}
+$('#paper').innerHTML=`${hdHtml}${bl}${ft}`}
 /* Xuất .docx (tự dựng bằng JSZip) */
 const X=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const rn=(r,sz)=>`<w:r><w:rPr>${r.b?'<w:b/>':''}${r.i?'<w:i/>':''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${X(r.x)}</w:t></w:r>`;
 function dp(rs,o={}){o={al:'c',sz:28,...o};const jc={c:'center',j:'both',l:'left'}[o.al];const bd=o.rule?`<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="${o.rule}" w:color="000000"/></w:pBdr>`:'';
-return `<w:p><w:pPr>${bd}<w:spacing w:before="${o.bf||0}" w:after="${o.af??60}" w:line="${o.ln||288}" w:lineRule="auto"/><w:ind w:left="${o.l||0}" w:right="${o.r||0}"${o.ind?' w:firstLine="567"':''}/><w:jc w:val="${jc}"/><w:rPr><w:sz w:val="${o.sz}"/></w:rPr></w:pPr>${rs.map(r=>rn(r,o.sz)).join('')}</w:p>`}
-const cell=(w,ps,span)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${span?`<w:gridSpan w:val="${span}"/>`:''}</w:tcPr>${ps||'<w:p/>'}</w:tc>`;
-const tbl=(ws,rows)=>`<w:tbl><w:tblPr><w:tblW w:w="${ws.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="nil"/>`).join('')}</w:tblBorders></w:tblPr><w:tblGrid>${ws.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.map(r=>`<w:tr>${r}</w:tr>`).join('')}</w:tbl>`;
-const _cv=document.createElement('canvas').getContext('2d');
-function mw(x,pt,b,i){_cv.font=`${i?'italic ':''}${b?'bold ':''}${pt}pt "Times New Roman",Times,serif`;return Math.round(_cv.measureText(x).width*0.75*20)+24}
-function hdocx(a,w){return a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b,o.i),rs=[{x:o.x,b:o.b,i:o.i}],base={sz:sz*2,af:0,ln:240,bf:o.gap?60:0};
-if(o.rule=='g'){const ind=Math.max(0,Math.round((w-tw)/2));return dp(rs,{...base,rule:4,l:ind,r:ind,af:60})}
-let s=dp(rs,base);if(o.rule=='s'){const rl=Math.round(Math.min(tw,w)/2),ind=Math.round((w-rl)/2);s+=dp([],{rule:2,l:ind,r:ind,sz:4,af:80,ln:120})}return s}).join('')}
+return `<w:p><w:pPr>${bd}<w:spacing w:before="${o.bf??0}" w:after="${o.af??0}" w:line="${o.ln??240}" w:lineRule="auto"/><w:ind w:left="${o.l||0}" w:right="${o.r||0}"${o.ind?' w:firstLine="567"':''}/><w:jc w:val="${jc}"/><w:rPr><w:sz w:val="${o.sz}"/></w:rPr></w:pPr>${rs.map(r=>rn(r,o.sz)).join('')}</w:p>`}
+const cell=(w,ps,span)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${span?`<w:gridSpan w:val="${span}"/>`:''}</w:tcPr>${ps||dp([],{bf:0,af:0,ln:240})}</w:tc>`;
+const tbl=(ws,rows,zp)=>`<w:tbl><w:tblPr><w:tblW w:w="${ws.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblLayout w:type="fixed"/>${zp?'<w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar>':''}<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="nil"/>`).join('')}</w:tblBorders></w:tblPr><w:tblGrid>${ws.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.map(r=>`<w:tr>${r}</w:tr>`).join('')}</w:tbl>`;
+const _TNR_R={A:722,B:667,C:667,D:722,E:611,F:556,G:722,H:722,I:333,J:389,K:722,L:611,M:889,N:722,O:722,P:556,Q:722,R:667,S:556,T:611,U:722,V:722,W:944,X:722,Y:722,Z:611,a:444,b:500,c:444,d:500,e:444,f:333,g:500,h:500,i:278,j:278,k:500,l:278,m:778,n:500,o:500,p:500,q:500,r:333,s:389,t:278,u:500,v:500,w:722,x:500,y:500,z:444,' ':250,'-':333,'/':278,'.':250,',':250,':':278};
+const _TNR_B={A:722,B:667,C:722,D:722,E:667,F:611,G:778,H:778,I:389,J:500,K:778,L:667,M:944,N:722,O:778,P:611,Q:778,R:722,S:556,T:667,U:722,V:722,W:1000,X:722,Y:722,Z:667,a:500,b:556,c:444,d:556,e:444,f:333,g:500,h:556,i:278,j:333,k:556,l:278,m:833,n:556,o:500,p:556,q:556,r:444,s:389,t:333,u:556,v:500,w:722,x:500,y:500,z:444,' ':250,'-':333,'/':278,'.':250,',':250,':':333};
+function mw(x,pt,b){const tb=b?_TNR_B:_TNR_R,s=String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');let u=0;for(const ch of s)u+=tb[ch]??(ch>='A'&&ch<='Z'?667:500);return Math.max(0,Math.round(u*(pt*20/1000))-16)}
+function hdocx(a,w){return a.map(o=>{const sz=o.sz||12,tw=mw(o.x,sz,o.b),rs=[{x:o.x,b:o.b,i:o.i}],base={sz:sz*2,af:0,ln:240,bf:o.gap?120:0};
+if(o.rule=='g'){const ind=Math.max(0,Math.round((w-tw)/2));return dp(rs,{...base,rule:4,l:ind,r:ind,af:0})}
+let s=dp(rs,base);if(o.rule=='s'){const rl=Math.round(Math.min(tw,w)/2),ind=Math.round((w-rl)/2);s+=dp([],{rule:2,l:ind,r:ind,sz:4,bf:0,af:0,ln:120})}return s}).join('')}
 function docXml(){const m=build();let o='';
-if(!m.plain)o+=tbl([4000,5355],[cell(4000,hdocx(m.L,3784))+cell(5355,hdocx(m.R,5139))])+'<w:p/>';
-m.B.forEach(b=>{if(b.rule)o+=dp([],{rule:4,l:3900,r:3900,af:60,sz:10});else o+=dp(b.rs,{al:b.al=='c'?'c':'j',ind:b.ind,sz:(b.sz||14)*2,bf:b.gap?80:0,ln:b.al=='c'?276:312,af:80})});
+if(!m.plain){const{L1,L2,R1,R2}=_splitHd(m.L,m.R);
+o+=tbl([3721,5350],[cell(3721,hdocx(L1,3721))+cell(5350,hdocx(R1,5350)),cell(3721,hdocx(L2,3721))+cell(5350,hdocx(R2,5350))],true)+dp([],{bf:0,af:0,ln:240,sz:24})}
+const lastBi=m.B.reduce((a,b,i)=>b.body?i:a,-1);
+m.B.forEach((b,idx)=>{if(b.rule)o+=dp([],{rule:4,l:3800,r:3800,bf:0,af:0,sz:10});
+else if(b.kg){o+=dp(b.rs,{al:'c',sz:(b.sz||14)*2,bf:0,af:0,ln:240})+dp([],{al:'l',sz:28,bf:0,af:0,ln:240})}
+else if(b.body){const isLast=idx===lastBi;o+=dp(b.rs,{al:b.al=='c'?'c':'j',ind:b.ind,sz:(b.sz||14)*2,bf:isLast?0:120,af:isLast?0:120,ln:240})}
+else o+=dp(b.rs,{al:b.al=='c'?'c':'j',ind:b.ind,sz:(b.sz||14)*2,bf:b.gap?80:0,af:40,ln:240})});
 const F=m.F,sgp=(q,c,ten)=>[q,c].filter(Boolean).map(x=>dp([{x,b:1}],{af:0,ln:240})).join('')+dp([],{af:0,ln:1200})+dp([{x:ten,b:1}],{});
 const nrp=a=>dp([{x:'Nơi nhận:',b:1,i:1}],{al:'l',sz:24,af:0,l:567,ln:240})+a.map(l=>dp([{x:l}],{al:'l',sz:22,l:567,af:0,ln:240})).join('');
-if(F.k!='none')o+='<w:p/>';
-if(F.k=='std')o+=tbl([4900,4455],[cell(4900,nrp(F.nr))+cell(4455,sgp(F.q,F.c,F.ten))]);
-else if(F.k=='bb')o+=tbl([4677,4678],[cell(4677,dp([{x:'THƯ KÝ',b:1}],{af:0})+dp([],{af:0,ln:1200})+dp([{x:F.tk,b:1}],{}))+cell(4678,sgp(F.q,F.c,F.ten))])+'<w:p/>'+nrp(F.nr);
-else if(F.k=='pt'){const w=Math.floor(9355/F.mc),tr=(c,h)=>`<w:tr>${h?`<w:trPr><w:trHeight w:val="${h}" w:hRule="exact"/></w:trPr>`:''}${c}</w:tr>`,rows=[];F.rows.forEach((r,i)=>{rows.push(tr(r.map(c=>cell(w,dp(c.h?[{x:c.h,b:1}]:[],{af:0,ln:240}))).join('')));rows.push(tr(r.map(c=>cell(w,dp([],{af:0}))).join(''),1100));rows.push(tr(r.map(c=>cell(w,dp(c.n?[{x:c.n,b:1}]:[],{af:0}))).join('')));if(i==0)rows.push(tr(r.map(c=>cell(w,dp([],{af:0}))).join(''),240))});o+=`<w:tbl><w:tblPr><w:tblW w:w="${w*F.mc}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${Array(F.mc).fill(`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl>`}
-return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${o}<w:p/><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="850" w:bottom="1134" w:left="1701" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`}
+if(F.k!='none')o+=dp([],{bf:0,af:0,ln:240});
+if(F.k=='std')o+=tbl([4700,4371],[cell(4700,nrp(F.nr))+cell(4371,sgp(F.q,F.c,F.ten))]);
+else if(F.k=='bb')o+=tbl([4535,4536],[cell(4535,dp([{x:'THƯ KÝ',b:1}],{af:0})+dp([],{af:0,ln:1200})+dp([{x:F.tk,b:1}],{}))+cell(4536,sgp(F.q,F.c,F.ten))])+'<w:p/>'+nrp(F.nr);
+else if(F.k=='pt'){const w=Math.floor(9071/F.mc),tr=(c,h)=>`<w:tr>${h?`<w:trPr><w:trHeight w:val="${h}" w:hRule="exact"/></w:trPr>`:''}${c}</w:tr>`,rows=[];F.rows.forEach((r,i)=>{rows.push(tr(r.map(c=>cell(w,dp(c.h?[{x:c.h,b:1}]:[],{af:0,ln:240}))).join('')));rows.push(tr(r.map(c=>cell(w,dp([],{af:0}))).join(''),1100));rows.push(tr(r.map(c=>cell(w,dp(c.n?[{x:c.n,b:1}]:[],{af:0}))).join('')));if(i==0)rows.push(tr(r.map(c=>cell(w,dp([],{af:0}))).join(''),240))});o+=`<w:tbl><w:tblPr><w:tblW w:w="${w*F.mc}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${Array(F.mc).fill(`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl>`}
+return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${o}${dp([],{bf:0,af:0,ln:240})}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`}
 async function makeDocx(){const z=new JSZip(),W='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
 z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
 z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
 z.file('word/_rels/document.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
-z.file('word/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="vi-VN"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`);
+z.file('word/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="vi-VN"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>`);
 z.file('word/document.xml',docXml());return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
 function check(text){const R=[],add=(l,m)=>R.push([l,m]),nn=mode=='nn',kd=kind(),L=text.split('\n').map(x=>x.trim()).filter(Boolean);
 if(!(nn?C.nO:C.dO).trim())add('er','Chưa cấu hình tên cơ quan ban hành (tab Cấu hình đơn vị).');
@@ -371,7 +379,9 @@ let tt;function msg(t){const e=$('#toast');e.textContent=t;e.style.display='bloc
 $('#save').onclick=()=>{const h=ls.g('vts-hs',[]);h.unshift({t:Date.now(),mode,S:{...S}});msg(ls.s('vts-hs',h.slice(0,50))?'Đã lưu vào lịch sử.':'Trình duyệt không cho phép lưu trữ.')};
 $('#copy').onclick=async()=>{const t=$('#paper').innerText;try{await navigator.clipboard.writeText(t);msg('Đã sao chép văn bản.')}catch(e){try{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();msg(ok?'Đã sao chép văn bản.':'Không sao chép được – hãy bôi đen văn bản rồi Ctrl+C.')}catch(e2){msg('Không sao chép được – hãy bôi đen văn bản rồi Ctrl+C.')}}};
 $('#print').onclick=()=>{try{window.print()}catch(e){msg('Không in được trong khung này – hãy mở trang ở tab riêng.')}};
-$('#word').onclick=async()=>{try{if(typeof JSZip=='undefined'){msg('Chưa tải được thư viện tạo .docx – kiểm tra kết nối mạng.');return}const blob=await makeDocx(),fn=`${S.type}-${(S.so||'van-ban').replace(/[^\w-]/g,'')}.docx`;let dl=null;try{dl=window.claude&&await claude.use('downloads')}catch(e){}
+function noAccent(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,m=>m=='đ'?'d':'D')}
+function docFn(type,dateStr,ty){const d=(dateStr||iso()).replace(/-/g,'.');const tp=noAccent(type||'VB').replace(/[^\w]+/g,'');let t=noAccent((ty||'').replace(/^V\/v\s*/i,''));if(!t.trim())t=noAccent(name(type||'KH'));t=t.replace(/[\\/:*?"<>|.,;…]+/g,' ').replace(/\s+/g,' ').trim().slice(0,140);return `${d}. ${tp}${t?' '+t:''}.docx`}
+$('#word').onclick=async()=>{try{if(typeof JSZip=='undefined'){msg('Chưa tải được thư viện tạo .docx – kiểm tra kết nối mạng.');return}const blob=await makeDocx(),fn=docFn(S.type,S.date,S.ty);let dl=null;try{dl=window.claude&&await claude.use('downloads')}catch(e){}
 if(dl){await dl.save({filename:fn,data:blob});msg('Đã gửi tệp Word.')}else{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),10000);msg('Đang tải tệp Word (.docx)…')}}catch(e){msg(e&&e.code=='declined'?'Bạn đã hủy lưu tệp.':'Không xuất được tệp: '+(e.message||e))}};
 $('#pull').onclick=()=>{$('#rs').value=(S.cc?S.cc+'\n':'')+S.nd;msg('Đã lấy nội dung từ bản soạn.')};$('#torv').onclick=()=>{$('#pull').click();nav('ra');runCheck($('#rs').value)};$('#run').onclick=()=>runCheck($('#rs').value);
 const KB=[['Quy ước của đơn vị (TTĐMST)','Ký hiệu: Công văn “Số:      /TTĐMST-TTTK”; Kế hoạch /KH-TTĐMST; Quyết định /QĐ-TTĐMST; Nghị quyết /NQ-HĐND; Thông báo /TB-TTĐMST; Đề án /ĐA-TTĐMST; Báo cáo /BC-TTĐMST; Giấy mời /GM-TTĐMST. Không có số: Quy chế, Quy định (kèm theo Quyết định), Biên bản, Phiếu trình. Công văn bắt buộc có Kính gửi và Nơi nhận “Như trên”. Dòng “Lưu: VT, [phòng]” tự điền từ ô Phòng soạn thảo. Đầu dòng và Nơi nhận lùi 1 cm.'],['Phiếu trình','Khung ký gồm: Người trình; Lãnh đạo phòng; ý kiến các phòng liên quan (một hoặc nhiều); ý kiến Lãnh đạo Trung tâm (Giám đốc, Phó Giám đốc hoặc cả hai). Không có số văn bản.'],['Thể thức Nhà nước','NĐ 30/2020: quốc hiệu và tiêu ngữ; tên cơ quan; số, ký hiệu; địa danh, ngày tháng; tên loại và trích yếu; nội dung; chức vụ, họ tên người ký; dấu; nơi nhận; dấu khẩn, phạm vi lưu hành. Phụ lục III có 10 mẫu: 1.1 Nghị quyết (cá biệt), 1.2/1.3 Quyết định (cá biệt) trực tiếp/gián tiếp, 1.4 văn bản có tên loại, 1.5 Công văn, 1.6 Công điện, 1.7 Giấy mời, 1.8 Giấy giới thiệu, 1.9 Biên bản, 1.10 Giấy nghỉ phép.'],
@@ -409,6 +419,6 @@ $('#cfx').onclick=()=>{$$('[data-c]').forEach(e=>C[e.dataset.c]=e.value);$('#cfj
 $('#cfi').onclick=()=>{try{const o=JSON.parse($('#cfj').value);C={...CD,...C,...o};$$('[data-c]').forEach(e=>e.value=C[e.dataset.c]||'');fillLead();render();msg('Đã nhập cấu hình (nhớ bấm Lưu cấu hình).')}catch(e){msg('JSON không hợp lệ.')}};
 fillLead();setMode('nn');
 </script>
-<script src="patch.js"></script>
-<script src="features.js"></script>
+<script src="patch.js?v=20261127"></script>
+<script src="features.js?v=20261127"></script>
 </body></html>
